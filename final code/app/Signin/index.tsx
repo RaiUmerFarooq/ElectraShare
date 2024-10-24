@@ -1,0 +1,170 @@
+import React, { useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { View, Text, TextInput, Button, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+interface FormData {
+  email: string;
+  password: string;
+}
+
+const SignIn = () => {
+  const { control, handleSubmit, setValue, formState: { errors } } = useForm<FormData>();
+  const [showPassword, setShowPassword] = useState(false);
+
+  const onSubmit = (data: FormData) => {
+    // Here you would typically handle the sign-in process
+    // For now, we'll just show an alert with the entered data
+    Alert.alert('Sign In Attempt', `Email: ${data.email}\nPassword: ${data.password}`);
+    console.log('Sign In Attempt', `Email: ${data.email}\nPassword: ${data.password}`);
+    
+    // Reset form after submission
+    const reset = () => {
+      setValue("email", "");
+      setValue("password", "");
+    };
+    reset();
+  };
+
+  const toggleShowPassword = () => {
+    setShowPassword(!showPassword);
+  };
+
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.keyboardAvoiding}
+    >
+      <View style={styles.container}>
+        <Text style={styles.title}>Sign In</Text>
+        
+        {/* Email Field */}
+        <Controller
+          control={control}
+          rules={{
+            required: true,
+            pattern: /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/,
+          }}
+          render={({ field: { onChange, onBlur, value } }) => (
+            <TextInput
+              style={styles.input}
+              placeholder="Enter Email"
+              onBlur={onBlur}
+              onChangeText={onChange}
+              value={value}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+          )}
+          name="email"
+          defaultValue=""
+        />
+        {errors.email && <Text style={styles.error}>Please enter a valid email.</Text>}
+
+        {/* Password Field */}
+        <Controller
+          control={control}
+          rules={{
+            required: true,
+            minLength: 6,
+          }}
+          render={({ field: { onChange, onBlur, value } }) => (
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Enter Password"
+                onBlur={onBlur}
+                onChangeText={onChange}
+                value={value}
+                secureTextEntry={!showPassword}
+              />
+              <TouchableOpacity onPress={toggleShowPassword} style={styles.eyeIcon}>
+                <Ionicons 
+                  name={showPassword ? 'eye-off' : 'eye'} 
+                  size={24} 
+                  color="grey"
+                />
+              </TouchableOpacity>
+            </View>
+          )}
+          name="password"
+          defaultValue=""
+        />
+        {errors.password && <Text style={styles.error}>Password must be at least 6 characters long.</Text>}
+
+        {/* Submit Button */}
+        {/* <Button title="Sign In" onPress={handleSubmit(onSubmit)} /> */}
+        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit(onSubmit)}>
+          <Text style={styles.submitButtonText}>Sign In</Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
+  );
+};
+
+const styles = StyleSheet.create({
+  keyboardAvoiding: {
+    flex: 1,
+  },
+  submitButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+    marginTop: 20,
+    width: '100%',
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  submitButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  signinText: {
+    color: 'black',
+  },
+  container: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#fff',
+  },
+  title: {
+    fontSize: 24,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 10,
+    marginBottom: 10,
+    borderRadius: 5,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    marginBottom: 10,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 10,
+  },
+  eyeIcon: {
+    padding: 10,
+  },
+  error: {
+    color: 'red',
+    marginBottom: 10,
+  },
+});
+
+export default SignIn;

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { View, Text, TextInput, Button, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, Alert, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from 'expo-router';
 
 interface FormData {
   email: string;
@@ -9,21 +10,20 @@ interface FormData {
 }
 
 const SignIn = () => {
+  const navigation = useNavigation();
   const { control, handleSubmit, setValue, formState: { errors } } = useForm<FormData>();
   const [showPassword, setShowPassword] = useState(false);
 
   const onSubmit = (data: FormData) => {
-    // Here you would typically handle the sign-in process
-    // For now, we'll just show an alert with the entered data
     Alert.alert('Sign In Attempt', `Email: ${data.email}\nPassword: ${data.password}`);
     console.log('Sign In Attempt', `Email: ${data.email}\nPassword: ${data.password}`);
-    
-    // Reset form after submission
-    const reset = () => {
-      setValue("email", "");
-      setValue("password", "");
-    };
-    reset();
+
+    // Reset form fields after submission
+    setValue("email", "");
+    setValue("password", "");
+
+    // Navigate to Dashboard
+    navigation.navigate('Dashboard/index'); // Use the correct path
   };
 
   const toggleShowPassword = () => {
@@ -31,13 +31,10 @@ const SignIn = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.keyboardAvoiding}
-    >
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardAvoiding}>
       <View style={styles.container}>
         <Text style={styles.title}>Sign In</Text>
-        
+
         {/* Email Field */}
         <Controller
           control={control}
@@ -79,11 +76,7 @@ const SignIn = () => {
                 secureTextEntry={!showPassword}
               />
               <TouchableOpacity onPress={toggleShowPassword} style={styles.eyeIcon}>
-                <Ionicons 
-                  name={showPassword ? 'eye-off' : 'eye'} 
-                  size={24} 
-                  color="grey"
-                />
+                <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={24} color="grey" />
               </TouchableOpacity>
             </View>
           )}
@@ -93,7 +86,6 @@ const SignIn = () => {
         {errors.password && <Text style={styles.error}>Password must be at least 6 characters long.</Text>}
 
         {/* Submit Button */}
-        {/* <Button title="Sign In" onPress={handleSubmit(onSubmit)} /> */}
         <TouchableOpacity style={styles.submitButton} onPress={handleSubmit(onSubmit)}>
           <Text style={styles.submitButtonText}>Sign In</Text>
         </TouchableOpacity>
@@ -102,31 +94,13 @@ const SignIn = () => {
   );
 };
 
+// Your styles here...
+
+
+
 const styles = StyleSheet.create({
   keyboardAvoiding: {
     flex: 1,
-  },
-  submitButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 12,
-    paddingHorizontal: 40,
-    borderRadius: 25,
-    marginTop: 20,
-    width: '100%',
-    alignItems: 'center',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  submitButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  signinText: {
-    color: 'black',
   },
   container: {
     flexGrow: 1,
@@ -165,6 +139,26 @@ const styles = StyleSheet.create({
     color: 'red',
     marginBottom: 10,
   },
+  submitButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+    marginTop: 20,
+    width: '100%',
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  submitButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
 });
 
 export default SignIn;
+

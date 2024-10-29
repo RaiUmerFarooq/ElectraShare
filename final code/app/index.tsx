@@ -16,11 +16,11 @@ export default function Index() {
           <Text style={ styles.signinText}>Sign In</Text>
         </TouchableOpacity>
       </Link>
-      <Link  href="./Post" asChild>
+      {/* <Link  href="./Post" asChild>
       <TouchableOpacity style={ styles.signinButton}>
           <Text style={ styles.signinText}>Add Post</Text>
         </TouchableOpacity>
-       </Link>
+       </Link> */}
     </View>
   );
 }

@@ -27,6 +27,11 @@ const Dashboard = () => {
       <TouchableOpacity style={styles.button} onPress={() => router.push('/Post')}>
         <Text style={styles.buttonText}>Add Post</Text>
       </TouchableOpacity>
+
+      
+      <TouchableOpacity style={styles.button} onPress={() => router.push('/addNeighbour')}>
+        <Text style={styles.buttonText}>Neighbours</Text>
+      </TouchableOpacity>
         
     </GestureHandlerRootView>
   );

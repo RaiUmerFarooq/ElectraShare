@@ -1,9 +1,10 @@
+import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Tabs } from 'expo-router';
 
 export default function TabLayout() {
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: 'blue' }}>
+    <Tabs screenOptions={{ tabBarActiveTintColor: 'green' }}>
       <Tabs.Screen
         name="Dashboard/index"  // Should match the HomeScreen filename
         options={{
@@ -14,8 +15,15 @@ export default function TabLayout() {
       <Tabs.Screen
         name="Post/index"  // Should match the SettingsScreen filename
         options={{
-          title: 'Settings',
-          tabBarIcon: ({ color }) => <FontAwesome size={28} name="cog" color={color} />,
+          title: 'Add Post',
+          tabBarIcon: ({ color }) => <MaterialIcons size={28} name="electric-bolt" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="addNeighbour/index"  // Should match the SettingsScreen filename
+        options={{
+          title: 'Add Friends',
+          tabBarIcon: ({ color }) => <FontAwesome5 size={28} name="user-friends" color={color} />,
         }}
       />
     </Tabs>

@@ -1,27 +1,23 @@
 import { Link } from "expo-router";
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler'; // Import GestureHandlerRootView
 
 export default function Index() {
   return (
-    <View style={styles.container}>
+    <GestureHandlerRootView style={styles.container}> 
       <Text style={styles.title}>Welcome</Text>
-      <Link href="./Signup" asChild>
+      <Link href={"./(auth)/Signup"} asChild>
         <TouchableOpacity style={styles.button}>
           <Text style={styles.buttonText}>Sign Up</Text>
         </TouchableOpacity>
       </Link>
-      <Link href="./Signin" asChild>
-        <TouchableOpacity style={ styles.signinButton}>
-          <Text style={ styles.signinText}>Sign In</Text>
+      <Link href={"./Signin"} asChild>
+        <TouchableOpacity style={styles.signinButton}>
+          <Text style={styles.signinText}>Sign In</Text>
         </TouchableOpacity>
       </Link>
-      {/* <Link  href="./Post" asChild>
-      <TouchableOpacity style={ styles.signinButton}>
-          <Text style={ styles.signinText}>Add Post</Text>
-        </TouchableOpacity>
-       </Link> */}
-    </View>
+    </GestureHandlerRootView>
   );
 }
 
@@ -47,7 +43,6 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     width: '80%',
     alignItems: 'center',
-    // For web support, consider using box-shadow instead of elevation
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -59,9 +54,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   signinButton: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
     backgroundColor: '#4CAF50',
     paddingVertical: 12,
     paddingHorizontal: 40,
@@ -69,12 +61,6 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     width: '80%',
     alignItems: 'center',
-    // For web support, consider using box-shadow instead of elevation
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
- //   backgroundColor: 'white',
     borderWidth: 2,
     borderColor: '#4CAF50',
   },
@@ -82,6 +68,5 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
-    backgroundColor: '#4CAF50',
   },
 });

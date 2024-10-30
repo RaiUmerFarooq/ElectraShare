@@ -8,8 +8,8 @@ from django.contrib.auth.models import AbstractBaseUser
 class User(AbstractBaseUser):
     username = models.CharField(max_length=50, unique=True)
     email = models.EmailField(unique=True)
-    contact = models.CharField(max_length=11, null=True)
-    role = models.CharField(max_length=8)
+    contactNo = models.IntegerField( null=True)
+    userRole = models.TextField( default ="", max_length=8)
     password = models.CharField(max_length=128)  # inherited from AbstractBaseUser
 
     # Define the unique identifier for authentication

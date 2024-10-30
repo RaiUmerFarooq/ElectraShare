@@ -5,10 +5,10 @@ from rest_framework.test import APITestCase
 class UserRegistrationTestCase(APITestCase):
     def test_registration_and_verification(self):
         registration_data = {
-            'username': 'testuser',
-            'email': 'test@example.com',
-            'contact': '03034534523',
-            'role': 'Producer',
+            'username': 'testuser2',
+            'email': 'test2@example.com',
+            'contactNo': '03034534523',
+            'userRole': 'Producer',
             'password': 'testpassword',
 
         }

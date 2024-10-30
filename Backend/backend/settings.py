@@ -111,8 +111,15 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'electrashare_db',       # Replace with the name of your database
+        'USER': 'electrashare',          # Replace with your MySQL username
+        'PASSWORD': '1234',      # Replace with your MySQL password
+        'HOST': 'localhost',         # Or an IP address if MySQL is hosted remotely
+        'PORT': '3306',              # MySQL’s default port
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
+        }
     }
 }
 

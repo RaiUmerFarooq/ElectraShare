@@ -62,13 +62,13 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
 }
 
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # Prints emails to the console
-EMAIL_HOST = 'smtp.your-email-provider.com'  # e.g., smtp.gmail.com
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+#EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # Prints emails to the console
+EMAIL_HOST = 'smtp.gmail.com'  # e.g., smtp.gmail.com
 EMAIL_PORT = 587  # or 465 for SSL
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'your-email@example.com'
-EMAIL_HOST_PASSWORD = 'your-email-password'
+EMAIL_HOST_USER = 'raifarooq7860786@gmail.com'
+EMAIL_HOST_PASSWORD = 'wimm kneb ijlc hlta'
 DEFAULT_FROM_EMAIL = 'your-email@example.com'
 
 
@@ -81,7 +81,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-        'allauth.account.middleware.AccountMiddleware',  
+   # 'allauth.account.middleware.AccountMiddleware',  
 
 ]
 

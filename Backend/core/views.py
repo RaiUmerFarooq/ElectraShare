@@ -1,10 +1,7 @@
-# Create your views here.
-
-from django.shortcuts import render
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode  # Importing the required function
-from django.utils.encoding import force_bytes, force_str  # Importing force_str
+from django.shortcuts import render, get_object_or_404
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
 import jwt
-from django.core.mail import send_mail
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -12,9 +9,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import RegisterSerializer, LoginSerializer
 from django.contrib.auth.models import User
-from .utils import *
-
-
+from .utils import send_verification_email
 
 class RegisterView(APIView):
     def post(self, request):
@@ -27,7 +22,7 @@ class RegisterView(APIView):
             # Send verification email
             send_verification_email(user)
 
-            # Generate JWT tokens for the new user (optional, if you want to provide tokens immediately)
+            # Generate JWT tokens for the new user (optional)
             refresh = RefreshToken.for_user(user)
             return Response({
                 'message': "Registration successful. Please check your email to verify your account.",
@@ -53,8 +48,9 @@ class LoginView(TokenObtainPairView):
 class VerifyEmailView(APIView):
     def get(self, request, uidb64, token):
         try:
+            # Decode the user ID from the base64 URL-safe string
             uid = force_str(urlsafe_base64_decode(uidb64))
-            user = User.objects.get(pk=uid)
+            user = get_object_or_404(User, pk=uid)
 
             # Verify the token
             payload = jwt.decode(token, 'your-secret-key', algorithms=['HS256'])
@@ -64,7 +60,12 @@ class VerifyEmailView(APIView):
             # Activate the user account
             user.is_active = True
             user.save()
+
             return Response({"message": "Email verified successfully. You can now log in."}, status=status.HTTP_200_OK)
 
-        except (User.DoesNotExist, ValueError, jwt.ExpiredSignatureError):
+        except jwt.ExpiredSignatureError:
+            return Response({"message": "Verification link has expired."}, status=status.HTTP_400_BAD_REQUEST)
+        except jwt.DecodeError:
             return Response({"message": "Invalid verification link."}, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError:
+            return Response({"message": "Invalid user ID."}, status=status.HTTP_400_BAD_REQUEST)

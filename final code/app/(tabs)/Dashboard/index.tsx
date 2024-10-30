@@ -1,15 +1,14 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native'
-import React from 'react'
-import { useRouter } from 'expo-router'
+import { View, Text, StyleSheet } from 'react-native';
+import React from 'react';
+import { useRouter } from 'expo-router';
+import { TouchableOpacity } from 'react-native-gesture-handler';
+import { GestureHandlerRootView } from 'react-native-gesture-handler'; // Import GestureHandlerRootView
 
 const Dashboard = () => {
-  const router = useRouter()
+  const router = useRouter();
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Dashboard</Text>
-      </View>
+    <GestureHandlerRootView style={styles.container}> 
       
       <View style={styles.content}>
         {/* Summary Cards */}
@@ -25,15 +24,13 @@ const Dashboard = () => {
           </View>
         </View>
       </View>
-      <Pressable 
-        style={styles.button}
-        onPress={() => router.push('/Post')}
-      >
-        <Text style={styles.buttonText}>Create Post</Text>
-      </Pressable>
-    </View>
-  )
-}
+      <TouchableOpacity style={styles.button} onPress={() => router.push('/Post')}>
+        <Text style={styles.buttonText}>Add Post</Text>
+      </TouchableOpacity>
+        
+    </GestureHandlerRootView>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -78,17 +75,26 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   button: {
-    backgroundColor: '#007AFF',
-    padding: 16,
-    borderRadius: 8,
-    margin: 16,
+    backgroundColor: '#4CAF50',
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+    marginTop: 20,
+    width: '80%', // Reduced width
     alignItems: 'center',
+    alignSelf: 'center', // Centers the button horizontally
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
+
   buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
-})
+});
 
-export default Dashboard
+export default Dashboard;

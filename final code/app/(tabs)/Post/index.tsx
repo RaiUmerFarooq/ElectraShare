@@ -1,30 +1,31 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 
 const AddPost = () => {
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState(0);
-  const [units, setUnits] = useState(0);  // Added state for units
+  const [units, setUnits] = useState(0);
 
   const handlePostSubmit = () => {
     if (!title || !price || !units) {
       Alert.alert('Error', 'Please fill in all fields');
-      console.log('Error', 'Please fill in all fields');
+      console.log('Error');
       return;
     }
 
-    // Handle post submission (e.g., send it to an API or store it locally)
     Alert.alert('Success', `Post submitted:\nTitle: ${title}\nPrice: ${price}\nUnits: ${units}`);
     console.log('Success', `Post submitted:\nTitle: ${title}\nPrice: ${price}\nUnits: ${units}`);
-    
-    // Reset fields
-    setTitle(''); // Resetting title field
-    setPrice(0);  // Resetting price field
-    setUnits(0);  // Resetting units field
+    setTitle('');
+    setPrice(0);
+    setUnits(0);
   };
 
   return (
     <View style={styles.container}>
+      <Text style={styles.title}>Add New Post</Text>
+
+      {/* Basic Info Section */}
+      <Text style={styles.sectionHeader}>1. Basic Information</Text>
       <Text style={styles.label}>Post Title</Text>
       <TextInput
         style={styles.input}
@@ -37,24 +38,25 @@ const AddPost = () => {
       <TextInput
         style={styles.input}
         placeholder="Enter post price"
-        value={price.toString()} // Convert number to string for TextInput
-        onChangeText={(value) => setPrice(Number(value))} // Ensure input is converted to a number
+        value={price.toString()}
+        onChangeText={(value) => setPrice(Number(value))}
         keyboardType="numeric"
       />
 
+      {/* Selling Info Section */}
+      <Text style={styles.sectionHeader}>2. Selling Information</Text>
       <Text style={styles.label}>Units for Selling</Text>
       <TextInput
         style={styles.input}
         placeholder="Enter units for selling"
-        value={units.toString()} // Convert number to string for TextInput
-        onChangeText={(value) => setUnits(Number(value))} // Ensure input is converted to a number
+        value={units.toString()}
+        onChangeText={(value) => setUnits(Number(value))}
         keyboardType="numeric"
       />
 
       <TouchableOpacity style={styles.submitButton} onPress={handlePostSubmit}>
-        <Text style={styles.textButton}>Submit Post</Text>
+        <Text style={styles.submitButtonText}>Submit Post</Text>
       </TouchableOpacity>
-      
     </View>
   );
 };
@@ -62,41 +64,41 @@ const AddPost = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
     padding: 20,
+    backgroundColor: '#F9F9F9',
   },
-  label: {
-    fontSize: 18,
-    marginBottom: 10,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 10,
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
     marginBottom: 20,
-    borderRadius: 5,
+    textAlign: 'center',
   },
-  submitButton: {
-    color: 'white',
+  sectionHeader: {
     fontSize: 18,
     fontWeight: 'bold',
-    backgroundColor: '#4CAF50',
-    paddingVertical: 12,
-    paddingHorizontal: 40,
-    borderRadius: 25,
-    marginBottom: 15,
-    marginLeft: 30,
-    width: '80%',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    borderWidth: 2,
-    borderColor: '#4CAF50',
+    color: '#4CAF50',
+    marginBottom: 10,
+    marginTop: 20,
   },
-  textButton: {
-    color: 'white',
+  label: {
+    fontSize: 16,
+    marginBottom: 5,
+  },
+  input: {
+    backgroundColor: '#F2F2F2',
+    padding: 12,
+    borderRadius: 5,
+    marginBottom: 15,
+  },
+  submitButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  submitButtonText: {
+    color: '#FFF',
     fontSize: 18,
     fontWeight: 'bold',
   },

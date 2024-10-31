@@ -3,46 +3,68 @@ import { View, Text, TextInput, Alert, TouchableOpacity, StyleSheet, KeyboardAvo
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-
+import axios from 'axios';
 const SignIn = () => {
   const navigation = useNavigation();
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ username?: string; password?: string }>({});
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
     // Reset errors
     setErrors({});
-
+  
     // Validation
-    const newErrors: { email?: string; password?: string } = {};
-    if (!email) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/.test(email)) {
-      newErrors.email = 'Please enter a valid email.';
-    }
+    const newErrors: { username?: string; password?: string } = {};
+    if (!username) {
+      newErrors.username = 'User-Name is required';
+    } 
     if (!password) {
       newErrors.password = 'Password is required';
     } else if (password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters long.';
     }
-
+  
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return; // Stop execution if there are errors
     }
-
-    Alert.alert('Sign In Attempt', `Email: ${email}\nPassword: ${password}`);
-    console.log('Sign In Attempt', `Email: ${email}\nPassword: ${password}`);
-
+  
+    // Make an Axios POST request to the sign-in API with JSON content
+    const response = await axios.post('http://localhost:8000/api/login/', {
+      username,
+      password,
+    }, {
+      headers: {
+        'Content-Type': 'application/json', // Explicitly set Content-Type to application/json
+      },
+    }).catch((error) => error); // Catch the error here
+  
+    // Check for a response
+    if (response && response.status) {
+      if (response.status === 200) {
+        // Handle successful sign-in
+        Alert.alert('Sign In Successful', 'You have successfully signed in.');
+        // Navigate to Dashboard
+        navigation.navigate('(tabs)'); // Use the correct path
+      } else if (response.status === 400) {
+        // Specific handling for 400 Bad Request
+        Alert.alert('Sign In Failed', 'Invalid User-Name or Password. Please try again.');
+      } else {
+        // Handle other status codes
+        Alert.alert('Sign In Failed', response.data.message || 'An error occurred. Please try again.');
+      }
+    } else {
+      // Handle the case where no response is received
+      Alert.alert('Sign In Failed', 'No response from the server. Please try again later.');
+    }
+  
     // Reset form fields after submission
-    setEmail('');
+    setUsername('');
     setPassword('');
-
-    // Navigate to Dashboard
-    navigation.navigate('(tabs)'); // Use the correct path
   };
+  
 
   const toggleShowPassword = () => {
     setShowPassword(!showPassword);
@@ -54,16 +76,16 @@ const SignIn = () => {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
         <Text style={styles.title}>Sign In</Text>
 
-        {/* Email Field */}
+        {/* User-Name Field */}
         <TextInput
           style={styles.input}
-          placeholder="Enter Email"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
+          placeholder="Enter User-Name"
+          value={username}
+          onChangeText={setUsername}
+          keyboardType="default"
           autoCapitalize="none"
         />
-        {/* {errors.email && <Text style={styles.error}>{errors.email}12</Text>} Show specific error message */}
+        {/* {errors.username && <Text style={styles.error}>{errors.username}12</Text>} Show specific error message */}
 
         {/* Password Field */}
         <View style={styles.passwordContainer}>

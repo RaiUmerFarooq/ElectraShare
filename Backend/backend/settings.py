@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-  
+    'corsheaders',
     'core',
     'rest_framework',
     'rest_framework.authtoken',
@@ -74,6 +74,7 @@ DEFAULT_FROM_EMAIL = 'your-email@example.com'
 
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # Place this at the top
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -81,8 +82,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-   # 'allauth.account.middleware.AccountMiddleware',  
-
 ]
 
 ROOT_URLCONF = 'backend.urls'
@@ -154,7 +153,12 @@ USE_I18N = True
 
 USE_TZ = True
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8081",  # Replace with your React Native app's URL
+]
 
+CORS_ALLOW_ALL_ORIGINS = False  # Keep it false for security
+CORS_ALLOW_CREDENTIALS = True  # Allow cookies to be sent
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 

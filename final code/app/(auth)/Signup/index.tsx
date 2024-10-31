@@ -61,7 +61,7 @@ const SignUp = () => {
             setValue("userRole", "producer");
 
             // Navigate to the next screen (e.g., Home or dashboard)
-            navigation.navigate('./Signin/index');
+            navigation.navigate('Signin/index');
         } else {
             Alert.alert('Registration failed', 'Unable to create user.');
             console.log('Registration failed', response);

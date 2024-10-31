@@ -19,9 +19,12 @@ class RegisterSerializer(serializers.ModelSerializer):
         contact_no = validated_data.pop('contactNo', None)
         user_role = validated_data.pop('userRole', None)
         # Hash the password and create the user
+
         user = User(
             username=validated_data['username'],
             email=validated_data['email'],
+            contactNo=contact_no,
+            userRole=user_role
             
         )
         user.set_password(validated_data['password'])

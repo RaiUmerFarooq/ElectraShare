@@ -5,7 +5,7 @@ import jwt  # Make sure PyJWT is installed: pip install PyJWT
 
 def send_verification_email(user):
     # Generate a JWT token for the user ID
-    token = jwt.encode({'user_id': user.id}, 'your-secret-key', algorithm='HS256').decode('utf-8')  # Decode to string
+    token = jwt.encode({'id': user.id}, 'your-secret-key', algorithm='HS256').decode('utf-8')  # Decode to string
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     
     # Construct the verification link

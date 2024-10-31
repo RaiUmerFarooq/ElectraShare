@@ -1,43 +1,79 @@
 import React, { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { View, Text, TextInput, Button, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, Alert, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
+import RadioButtonGroup from '../components/RadioButtonGroup'; // Custom radio button component
+import axios from 'axios';
+import { useNavigation } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 interface FormData {
   email: string;
+  username: string;
+  contactNo: string; // Change to string
   password: string;
   reenter: string;
+  userRole: string;
 }
 
 const SignUp = () => {
+  const navigation = useNavigation();
   const { control, handleSubmit, setValue, formState: { errors } } = useForm<FormData>();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const onSubmit = (data: FormData) => {
-    if(data.password === data.reenter){
-      Alert.alert('Form Submitted', `Email: ${data.email}\nPassword: ${data.password} \nConfirm Password: ${data.reenter}`);
-      console.log('Form Submitted', `Email: ${data.email}\nPassword: ${data.password} \nConfirm Password: ${data.reenter}`);
-    
-      const reset = () => {
-        setValue("email", "");
-        setValue("password", "");
-        setValue("reenter", "");
-      };
-      reset();
-    } else {
-      Alert.alert('Password does not match');
-      console.log('Password does not match');
-    } 
-  };
+  const onSubmit = async (data: FormData) => {
+    if (data.password !== data.reenter) {
+        Alert.alert('Password does not match');
+        console.log('Password does not match');
+        return;
+    }
 
-  const toggleShowPassword = () => {
-    setShowPassword(!showPassword);
-  };
+    const { email, username, contactNo, password, userRole } = data;
 
-  const toggleShowConfirmPassword = () => {
-    setShowConfirmPassword(!showConfirmPassword);
-  };
+    const requestData = {
+        username: username.toString(),
+        email: email.toString(),
+        contactNo: contactNo.toString(),
+        userRole: userRole.toString(),
+        password: password.toString(),
+    };
+
+    // Sending data to backend
+    axios.post('http://localhost:8000/api/register/', requestData, {
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(async response => {
+        if (response.status === 201) {
+            Alert.alert('Success', 'User registered successfully!');
+
+            // Store tokens in AsyncStorage
+            await AsyncStorage.setItem('accessToken', response.data.access);
+            await AsyncStorage.setItem('refreshToken', response.data.refresh);
+
+            // Reset the form fields
+            setValue("email", "");
+            setValue("username", "");
+            setValue("contactNo", "");
+            setValue("password", "");
+            setValue("reenter", "");
+            setValue("userRole", "producer");
+
+            // Navigate to the next screen (e.g., Home or dashboard)
+            navigation.navigate('./Signin/index');
+        } else {
+            Alert.alert('Registration failed', 'Unable to create user.');
+            console.log('Registration failed', response);
+        }
+    })
+    .catch(error => {
+        console.error('Error registering user:', error);
+        Alert.alert('Error', 'An error occurred during registration. Please try again later.');
+    });
+};
+  const toggleShowPassword = () => setShowPassword(!showPassword);
+  const toggleShowConfirmPassword = () => setShowConfirmPassword(!showConfirmPassword);
 
   return (
     <KeyboardAvoidingView
@@ -46,7 +82,7 @@ const SignUp = () => {
     >
       <View style={styles.container}>
         <Text style={styles.title}>Sign Up</Text>
-        
+
         {/* Email Field */}
         <Controller
           control={control}
@@ -70,6 +106,47 @@ const SignUp = () => {
         />
         {errors.email && <Text style={styles.error}>Please enter a valid email.</Text>}
 
+        {/* Username Field */}
+        <Controller
+          control={control}
+          rules={{ required: true }}
+          render={({ field: { onChange, onBlur, value } }) => (
+            <TextInput
+              style={styles.input}
+              placeholder="Enter Username"
+              onBlur={onBlur}
+              onChangeText={onChange}
+              value={value}
+            />
+          )}
+          name="username"
+          defaultValue=""
+        />
+        {errors.username && <Text style={styles.error}>Username is required.</Text>}
+
+        {/* Contact Number Field */}
+        <Controller
+          control={control}
+          rules={{
+            required: true,
+            pattern: /^[0-9]{10,15}$/, // Validate as a string of digits
+          }}
+          render={({ field: { onChange, onBlur, value } }) => (
+            <TextInput
+              style={styles.input}
+              placeholder="Enter Contact Number"
+              onBlur={onBlur}
+              onChangeText={onChange}
+              value={value} // Keep value as a string
+              keyboardType="phone-pad"
+              maxLength={15} // Optional: Limit input length
+            />
+          )}
+          name="contactNo"
+          defaultValue=""
+        />
+        {errors.contactNo && <Text style={styles.error}>Please enter a valid contact number.</Text>}
+
         {/* Password Field */}
         <Controller
           control={control}
@@ -88,11 +165,7 @@ const SignUp = () => {
                 secureTextEntry={!showPassword}
               />
               <TouchableOpacity onPress={toggleShowPassword} style={styles.eyeIcon}>
-                <Ionicons 
-                  name={showPassword ? 'eye-off' : 'eye'} 
-                  size={24} 
-                  color="grey"
-                />
+                <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={24} color="grey" />
               </TouchableOpacity>
             </View>
           )}
@@ -119,11 +192,7 @@ const SignUp = () => {
                 secureTextEntry={!showConfirmPassword}
               />
               <TouchableOpacity onPress={toggleShowConfirmPassword} style={styles.eyeIcon}>
-                <Ionicons 
-                  name={showConfirmPassword ? 'eye-off' : 'eye'} 
-                  size={24} 
-                  color="grey"
-                />
+                <Ionicons name={showConfirmPassword ? 'eye-off' : 'eye'} size={24} color="grey" />
               </TouchableOpacity>
             </View>
           )}
@@ -131,6 +200,20 @@ const SignUp = () => {
           defaultValue=""
         />
         {errors.reenter && <Text style={styles.error}>Password must be at least 6 characters long.</Text>}
+
+        {/* User Role Radio Button */}
+        <Controller
+          control={control}
+          name="userRole"
+          defaultValue="producer"
+          render={({ field: { onChange, value } }) => (
+            <RadioButtonGroup
+              options={['producer', 'consumer']}
+              selectedOption={value}
+              onSelect={onChange}
+            />
+          )}
+        />
 
         {/* Submit Button */}
         <TouchableOpacity style={styles.submitButton} onPress={handleSubmit(onSubmit)}>
@@ -142,20 +225,14 @@ const SignUp = () => {
 };
 
 const styles = StyleSheet.create({
-  keyboardAvoiding: {
-    flex: 1,
-  },
+  keyboardAvoiding: { flex: 1 },
   container: {
     flexGrow: 1,
     justifyContent: 'center',
     padding: 20,
     backgroundColor: '#fff',
   },
-  title: {
-    fontSize: 24,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
+  title: { fontSize: 24, marginBottom: 20, textAlign: 'center' },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
@@ -171,17 +248,9 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginBottom: 10,
   },
-  passwordInput: {
-    flex: 1,
-    padding: 10,
-  },
-  eyeIcon: {
-    padding: 10,
-  },
-  error: {
-    color: 'red',
-    marginBottom: 10,
-  },
+  passwordInput: { flex: 1, padding: 10 },
+  eyeIcon: { padding: 10 },
+  error: { color: 'red', marginBottom: 10 },
   submitButton: {
     backgroundColor: '#4CAF50',
     paddingVertical: 12,
@@ -196,11 +265,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
-  submitButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
+  submitButtonText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
 });
 
 export default SignUp;

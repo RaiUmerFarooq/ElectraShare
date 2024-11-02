@@ -2,7 +2,7 @@ from django.core.mail import send_mail
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 import jwt  # Make sure PyJWT is installed: pip install PyJWT
-
+from backend.settings import EMAIL_HOST_USER
 def send_verification_email(user):
     # Generate a JWT token for the user ID
     token = jwt.encode({'id': user.id}, 'your-secret-key', algorithm='HS256').decode('utf-8')  # Decode to string
@@ -19,7 +19,7 @@ def send_verification_email(user):
     send_mail(
         subject,
         message,
-        'raifarooq7860786@gmail.com',  # From email
+        EMAIL_HOST_USER,  # From email
         [user.email],                   # To email
         fail_silently=False
     )

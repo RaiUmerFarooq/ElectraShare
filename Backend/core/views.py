@@ -10,6 +10,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import RegisterSerializer, LoginSerializer
 from .utils import send_verification_email
 from .models import *
+from rest_framework.permissions import IsAuthenticated
 
 class RegisterView(APIView):
     def post(self, request):
@@ -87,3 +88,20 @@ class VerifyEmailView(APIView):
         except Exception as e:
             print(f"An unexpected error occurred during email verification: {str(e)}")
             return Response({"message": "An unexpected error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+class ProfileView(APIView):
+    permission_classes = [IsAuthenticated]  # Ensure the user is authenticated
+
+    def get(self, request):
+        """
+        Get the profile details of the authenticated user.
+        Requires a valid JWT token.
+        """
+        user = request.user  # The user will be automatically set by JWTAuthentication
+
+        # Get the user profile data (username, email, etc.)
+        user_data = {
+            'username': user.username,
+            'email': user.email,
+        }
+
+        return Response(user_data, status=status.HTTP_200_OK)

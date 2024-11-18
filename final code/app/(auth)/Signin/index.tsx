@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 const SignIn = () => {
   const navigation = useNavigation();
   const [username, setUsername] = useState('');
@@ -40,7 +41,16 @@ const SignIn = () => {
         'Content-Type': 'application/json', // Explicitly set Content-Type to application/json
       },
     }).catch((error) => error); // Catch the error here
-  
+    if (response.status === 200 && response.data.access) {
+      const accessToken = response.data.access;
+      const refreshToken = response.data.refresh;
+
+      // Save the access token and refresh token in AsyncStorage
+      await AsyncStorage.setItem('accessToken', accessToken);
+      await AsyncStorage.setItem('refreshToken', refreshToken);
+
+      console.log('Access token saved:', accessToken);
+    }
     // Check for a response
     if (response && response.status) {
       if (response.status === 200) {

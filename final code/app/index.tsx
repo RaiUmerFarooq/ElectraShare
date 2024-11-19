@@ -13,7 +13,7 @@ export default function Index() {
       const accessToken = await AsyncStorage.getItem("accessToken");
       if (accessToken) {
         // If a token is found, navigate to the dashboard or home screen
-        navigation.navigate("(tabs)"); // Change this to your actual home screen
+        navigation.navigate("(tabs)/Dashboard/index"); // Change this to your actual home screen
       }
     };
 

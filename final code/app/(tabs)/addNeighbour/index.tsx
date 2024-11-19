@@ -3,6 +3,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { View, Text, TouchableOpacity, StyleSheet, FlatList, Alert, ListRenderItem, Platform, ImageBackground } from 'react-native';
 import { FontAwesome6, Ionicons } from '@expo/vector-icons';
 import { AntDesign } from '@expo/vector-icons';
+import AuthCheck from '@/app/validations/AuthCheck';
 
 type Request = {
     id: string;
@@ -87,6 +88,7 @@ const AddNeighbour: React.FC = () => {
     );
 
     return (
+        <AuthCheck>
         <GestureHandlerRootView style={{ flex: 1 }}>
             <ImageBackground
                 source={{ uri: 'https://st2.depositphotos.com/1000356/5730/i/450/depositphotos_57307849-stock-photo-green-leaves-background.jpg' }} // Replace with your image URL
@@ -141,6 +143,7 @@ const AddNeighbour: React.FC = () => {
                 </View>
             </ImageBackground>
         </GestureHandlerRootView>
+        </AuthCheck>
     );
 };
 

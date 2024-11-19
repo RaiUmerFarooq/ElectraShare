@@ -1,7 +1,17 @@
-import { View, Text, StyleSheet, ScrollView, Dimensions, Image } from 'react-native';
-import React, { useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Dimensions,
+  Image,
+  RefreshControl,
+} from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LineChart } from 'react-native-chart-kit';
-import { RefreshControl } from 'react-native';
+import { useNavigation } from '@react-navigation/native'; // Import navigation
+import AuthCheck from '@/app/validations/AuthCheck';
 
 // Get the screen width for the chart
 const screenWidth = Dimensions.get('window').width;
@@ -16,6 +26,11 @@ const Dashboard = () => {
       },
     ],
   });
+
+  const navigation = useNavigation(); // Hook to access navigation
+
+  // Check for accessToken on mount
+ 
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -36,16 +51,21 @@ const Dashboard = () => {
   }, [powerData]);
 
   return (
+    <AuthCheck>
     <View style={styles.container}>
       {/* Background Image */}
       <Image
-        source={{ uri: 'https://thumbs.dreamstime.com/b/cartoon-planet-cute-d-icon-earth-day-environment-conservation-concept-low-poly-save-green-isolated-transparent-background-png-274956627.jpg' }} // Replace with the image URL you want to use
+        source={{
+          uri: 'https://thumbs.dreamstime.com/b/cartoon-planet-cute-d-icon-earth-day-environment-conservation-concept-low-poly-save-green-isolated-transparent-background-png-274956627.jpg',
+        }} // Replace with the image URL you want to use
         style={styles.backgroundImage}
       />
 
       <ScrollView
         style={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         {/* Solar Monitoring Section */}
         <View style={styles.card}>
@@ -79,6 +99,7 @@ const Dashboard = () => {
         </View>
       </ScrollView>
     </View>
+    </AuthCheck>
   );
 };
 

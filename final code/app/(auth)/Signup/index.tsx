@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import {
   View,
@@ -16,6 +16,7 @@ import RadioButtonGroup from '../components/RadioButtonGroup'; // Custom radio b
 import axios from 'axios';
 import { useNavigation } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import apiClient from '@/app/api-component/apiClient';
 
 interface FormData {
   email: string;
@@ -37,55 +38,60 @@ const SignUp = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  useEffect(() => {
+    const checkSessionExpiry = async () => {
+      const sessionExpiry = await AsyncStorage.getItem('sessionExpiry');
+      if (sessionExpiry) {
+        const expiryDate = new Date(sessionExpiry);
+        if (new Date() > expiryDate) {
+          await AsyncStorage.clear();
+          Alert.alert('Session Expired', 'Please log in again.');
+          navigation.navigate('(auth)/Signin/index');
+        }
+      }
+    };
+    checkSessionExpiry();
+  }, []);
+
   const onSubmit = async (data: FormData) => {
     if (data.password !== data.reenter) {
-      Alert.alert('Password does not match');
+      Alert.alert('Error', 'Passwords do not match.');
       return;
     }
 
-    const { email, username, contactNo, password, userRole } = data;
-
-    const requestData = {
-      username: username.toString(),
-      email: email.toString(),
-      contactNo: contactNo.toString(),
-      userRole: userRole.toString(),
-      password: password.toString(),
-    };
-
-    // Sending data to backend
-    axios
-      .post('http://localhost:8000/api/register/', requestData, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-      .then(async (response) => {
-        if (response.status === 201) {
-          Alert.alert('Success', 'User registered successfully!');
-
-          // Store tokens in AsyncStorage
-          await AsyncStorage.setItem('accessToken', response.data.access);
-          await AsyncStorage.setItem('refreshToken', response.data.refresh);
-
-          // Reset the form fields
-          setValue('email', '');
-          setValue('username', '');
-          setValue('contactNo', '');
-          setValue('password', '');
-          setValue('reenter', '');
-          setValue('userRole', 'producer');
-
-          // Navigate to the SignIn screen
-          navigation.navigate('(auth)/Signin/index');
-        } else {
-          Alert.alert('Registration failed', 'Unable to create user.');
-        }
-      })
-      .catch((error) => {
-        console.error('Error registering user:', error);
-        Alert.alert('Error', 'An error occurred during registration. Please try again later.');
+    try {
+      const response = await apiClient.post('/register/', {
+        username: data.username,
+        email: data.email,
+        contactNo: data.contactNo,
+        userRole: data.userRole,
+        password: data.password,
       });
+
+      if (response.status === 201) {
+        Alert.alert('Success', 'User registered successfully!');
+
+        const { access, refresh } = response.data;
+        const expiration = new Date();
+        expiration.setDate(expiration.getDate() + 2);
+
+        await AsyncStorage.setItem('accessToken', access);
+        await AsyncStorage.setItem('refreshToken', refresh);
+        await AsyncStorage.setItem('sessionExpiry', expiration.toISOString());
+
+        setValue('email', '');
+        setValue('username', '');
+        setValue('contactNo', '');
+        setValue('password', '');
+        setValue('reenter', '');
+        setValue('userRole', 'producer');
+
+        navigation.navigate('(auth)/Signin/index');
+      }
+    } catch (error) {
+      console.error('Error registering user:', error);
+      Alert.alert('Error', 'An error occurred during registration. Please try again later.');
+    }
   };
 
   const toggleShowPassword = () => setShowPassword(!showPassword);

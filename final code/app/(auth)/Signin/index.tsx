@@ -1,187 +1,189 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Alert, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from 'expo-router';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Image } from 'react-native';
+import * as yup from 'yup';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from 'expo-router';
+
+const loginSchema = yup.object().shape({
+  username: yup.string().required('User-Name is required'),
+  password: yup.string().required('Password is required').min(6, 'Password must be at least 6 characters long'),
+});
+
 const SignIn = () => {
   const navigation = useNavigation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<{ username?: string; password?: string }>({});
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
-  const onSubmit = async () => {
-    // Reset errors
-    setErrors({});
-  
-    // Validation
-    const newErrors: { username?: string; password?: string } = {};
-    if (!username) {
-      newErrors.username = 'User-Name is required';
-    } 
-    if (!password) {
-      newErrors.password = 'Password is required';
-    } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters long.';
-    }
-  
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return; // Stop execution if there are errors
-    }
-  
-    // Make an Axios POST request to the sign-in API with JSON content
-    const response = await axios.post('http://localhost:8000/api/login/', {
-      username,
-      password,
-    }, {
-      headers: {
-        'Content-Type': 'application/json', // Explicitly set Content-Type to application/json
-      },
-    }).catch((error) => error); // Catch the error here
-    if (response.status === 200 && response.data.access) {
-      const accessToken = response.data.access;
-      const refreshToken = response.data.refresh;
+  const handleLogin = async () => {
+    try {
+      setLoading(true);
+      // Validate inputs
+      await loginSchema.validate({ username, password }, { abortEarly: false });
 
-      // Save the access token and refresh token in AsyncStorage
-      await AsyncStorage.setItem('accessToken', accessToken);
-      await AsyncStorage.setItem('refreshToken', refreshToken);
+      // If validation passes, send request
+      const response = await axios.post('http://localhost:8000/api/login/', { username, password }, {
+        headers: { 'Content-Type': 'application/json' },
+      });
 
-      console.log('Access token saved:', accessToken);
-    }
-    // Check for a response
-    if (response && response.status) {
-      if (response.status === 200) {
-        // Handle successful sign-in
+      if (response.status === 200 && response.data.access) {
+        // Store tokens
+        const accessToken = response.data.access;
+        const refreshToken = response.data.refresh;
+        await AsyncStorage.setItem('accessToken', accessToken);
+        await AsyncStorage.setItem('refreshToken', refreshToken);
+
         Alert.alert('Sign In Successful', 'You have successfully signed in.');
-        // Navigate to Dashboard
-        navigation.navigate('(tabs)'); // Use the correct path
-      } else if (response.status === 400) {
-        // Specific handling for 400 Bad Request
-        Alert.alert('Sign In Failed', 'Invalid User-Name or Password. Please try again.');
+        navigation.navigate('(tabs)');
       } else {
-        // Handle other status codes
-        Alert.alert('Sign In Failed', response.data.message || 'An error occurred. Please try again.');
+        Alert.alert('Sign In Failed', 'Invalid User-Name or Password.');
       }
-    } else {
-      // Handle the case where no response is received
-      Alert.alert('Sign In Failed', 'No response from the server. Please try again later.');
+    } catch (error) {
+      if (error.name === 'ValidationError') {
+        const newErrors = {};
+        error.inner.forEach((err) => {
+          newErrors[err.path] = err.message;
+        });
+        setErrors(newErrors);
+      } else {
+        Alert.alert('Error', error.message);
+      }
+    } finally {
+      setLoading(false);
     }
-  
-    // Reset form fields after submission
-    setUsername('');
-    setPassword('');
-  };
-  
-
-  const toggleShowPassword = () => {
-    setShowPassword(!showPassword);
   };
 
   return (
-   
-    <GestureHandlerRootView style={styles.keyboardAvoiding}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-        <Text style={styles.title}>Sign In</Text>
+    <View style={styles.container}>
+      {/* Background Image */}
+      <Image
+        source={{ uri: 'https://img.freepik.com/premium-vector/drawing-house-with-solar-panels-top_987686-21891.jpg' }}  // Replace with the background image URL you want to use
+        style={styles.backgroundImage}
+      />
+      
+      <View style={styles.content}>
+        <Text style={styles.title}>ElectraShare</Text>
+
+        {/* Avatar Image */}
+        <Image
+          source={{ uri: 'https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg' }}  // Replace this URL with the image URL you want to use
+          style={styles.avatar}
+        />
 
         {/* User-Name Field */}
         <TextInput
           style={styles.input}
-          placeholder="Enter User-Name"
+          placeholder="User-Name"
           value={username}
           onChangeText={setUsername}
-          keyboardType="default"
           autoCapitalize="none"
         />
-        {/* {errors.username && <Text style={styles.error}>{errors.username}12</Text>} Show specific error message */}
+        {errors.username && <Text style={styles.errorText}>{errors.username}</Text>}
 
         {/* Password Field */}
-        <View style={styles.passwordContainer}>
-          <TextInput
-            style={styles.passwordInput}
-            placeholder="Enter Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!showPassword}
-          />
-          <TouchableOpacity onPress={toggleShowPassword} style={styles.eyeIcon}>
-            <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={24} color="grey" />
-          </TouchableOpacity>
-        </View>
-        {/* {errors.password && <Text style={styles.error}>{errors.password}</Text>} Show specific error message */}
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+        {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
 
         {/* Submit Button */}
-        <TouchableOpacity style={styles.submitButton} onPress={onSubmit}>
-          <Text style={styles.submitButtonText}>Sign In</Text>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Login</Text>
+          )}
         </TouchableOpacity>
-      </KeyboardAvoidingView>
-    </GestureHandlerRootView>
-   
+
+        {/* Link to Signup Screen */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('(auth)/Signup/index')}
+          style={styles.linkButton}
+        >
+          <Text style={styles.linkText}>Don't have an account? Sign up</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 };
 
-// Your styles here...
 const styles = StyleSheet.create({
-  keyboardAvoiding: {
-    flex: 1,
-  },
   container: {
-    flexGrow: 1,
+    flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative', // Ensures the background image stays behind the content
+  },
+  backgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  content: {
+    flex: 1,
+    width: '100%',
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)', // Make the content background slightly transparent
+    borderRadius: 10,
+    zIndex: 1, // Ensure content is above the background image
   },
   title: {
-    fontSize: 24,
-    marginBottom: 20,
+    fontSize: 32,
+    fontWeight: 'bold',
     textAlign: 'center',
+    marginBottom: 40,
+    color: '#2E7D32',
+  },
+  avatar: {
+    width: 100,  // Set the width of the avatar
+    height: 100, // Set the height of the avatar
+    borderRadius: 50, // Makes the image circular
+    marginBottom: 20, // Space between avatar and title
+    alignSelf: 'center',  // Center the avatar
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 10,
+    borderColor: '#ddd',
+    padding: 15,
+    borderRadius: 8,
     marginBottom: 10,
-    borderRadius: 5,
+    fontSize: 16,
   },
-  passwordContainer: {
-    flexDirection: 'row',
+  button: {
+    backgroundColor: '#2E7D32',
+    padding: 15,
+    borderRadius: 8,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-    marginBottom: 10,
   },
-  passwordInput: {
-    flex: 1,
-    padding: 10,
+  buttonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
-  eyeIcon: {
-    padding: 10,
-  },
-  error: {
+  errorText: {
     color: 'red',
     marginBottom: 10,
   },
-  submitButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 12,
-    paddingHorizontal: 40,
-    borderRadius: 25,
+  linkButton: {
     marginTop: 20,
-    width: '100%',
     alignItems: 'center',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
   },
-  submitButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
+  linkText: {
+    color: '#2E7D32',
+    fontSize: 16,
   },
 });
 

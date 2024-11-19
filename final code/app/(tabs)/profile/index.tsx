@@ -4,6 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { useNavigation } from "expo-router";
 import { Ionicons } from "react-native-vector-icons";
+import AuthCheck from "@/app/validations/AuthCheck";
 
 export default function Profile() {
   const [profileData, setProfileData] = useState(null);
@@ -41,6 +42,7 @@ export default function Profile() {
     try {
       await AsyncStorage.removeItem("accessToken");
       await AsyncStorage.removeItem("refreshToken");
+      await AsyncStorage.removeItem("sessionExpiry");
 
       setTimeout(() => {
         setIsLoggingOut(false);
@@ -72,6 +74,7 @@ export default function Profile() {
   }
 
   return (
+    <AuthCheck>
     <ImageBackground
       source={{ uri: "https://th.bing.com/th/id/OIP.srerCJPIm2TKd1ZKp-N6EwAAAA?w=400&h=600&rs=1&pid=ImgDetMain" }} // Replace with your background image URL
       style={styles.container}
@@ -108,6 +111,7 @@ export default function Profile() {
         <Text style={styles.noDataText}>No profile data available.</Text>
       )}
     </ImageBackground>
+    </AuthCheck>
   );
 }
 

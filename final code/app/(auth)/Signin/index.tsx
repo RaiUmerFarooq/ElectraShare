@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Image } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  Alert,
+  Image,
+} from 'react-native';
 import * as yup from 'yup';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -29,14 +38,17 @@ const SignIn = () => {
       });
 
       if (response.status === 200 && response.data.access) {
-        // Store tokens
-        const accessToken = response.data.access;
-        const refreshToken = response.data.refresh;
+        // Store tokens and session expiry
+        const { access: accessToken, refresh: refreshToken } = response.data;
+        const expiration = new Date();
+        expiration.setDate(expiration.getDate() + 2); // 2-day expiry
+
         await AsyncStorage.setItem('accessToken', accessToken);
         await AsyncStorage.setItem('refreshToken', refreshToken);
+        await AsyncStorage.setItem('sessionExpiry', expiration.toISOString());
 
         Alert.alert('Sign In Successful', 'You have successfully signed in.');
-        navigation.navigate('(tabs)');
+        navigation.navigate('Dashboard/index');
       } else {
         Alert.alert('Sign In Failed', 'Invalid User-Name or Password.');
       }
@@ -59,16 +71,16 @@ const SignIn = () => {
     <View style={styles.container}>
       {/* Background Image */}
       <Image
-        source={{ uri: 'https://img.freepik.com/premium-vector/drawing-house-with-solar-panels-top_987686-21891.jpg' }}  // Replace with the background image URL you want to use
+        source={{ uri: 'https://img.freepik.com/premium-vector/drawing-house-with-solar-panels-top_987686-21891.jpg' }}
         style={styles.backgroundImage}
       />
-      
+
       <View style={styles.content}>
         <Text style={styles.title}>ElectraShare</Text>
 
         {/* Avatar Image */}
         <Image
-          source={{ uri: 'https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg' }}  // Replace this URL with the image URL you want to use
+          source={{ uri: 'https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg' }}
           style={styles.avatar}
         />
 
@@ -122,7 +134,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative', // Ensures the background image stays behind the content
+    position: 'relative',
   },
   backgroundImage: {
     position: 'absolute',
@@ -136,9 +148,9 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     padding: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)', // Make the content background slightly transparent
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
     borderRadius: 10,
-    zIndex: 1, // Ensure content is above the background image
+    zIndex: 1,
   },
   title: {
     fontSize: 32,
@@ -148,11 +160,11 @@ const styles = StyleSheet.create({
     color: '#2E7D32',
   },
   avatar: {
-    width: 100,  // Set the width of the avatar
-    height: 100, // Set the height of the avatar
-    borderRadius: 50, // Makes the image circular
-    marginBottom: 20, // Space between avatar and title
-    alignSelf: 'center',  // Center the avatar
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 20,
+    alignSelf: 'center',
   },
   input: {
     borderWidth: 1,

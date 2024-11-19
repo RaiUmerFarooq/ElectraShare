@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import React, { useState,useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ImageBackground } from 'react-native';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import AuthCheck from '@/app/validations/AuthCheck';
 const AddPost = () => {
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState(0);
@@ -19,8 +21,27 @@ const AddPost = () => {
     setPrice(0);
     setUnits(0);
   };
+  const navigation = useNavigation(); // Hook to access navigation
 
+  // Check for accessToken on mount
+  useEffect(() => {
+    const checkAccessToken = async () => {
+      try {
+        const token = await AsyncStorage.getItem('accessToken');
+        if (!token) {
+          // Redirect to login if token is missing
+          navigation.navigate('(auth)/Signin/index'); 
+        }
+      } catch (error) {
+        console.error('Error reading accessToken:', error);
+        navigation.navigate('(auth)/Signin/index'); // Redirect in case of error
+      }
+    };
+
+    checkAccessToken();
+  }, [navigation]);
   return (
+    <AuthCheck>
     <ImageBackground
       source={{ uri: 'https://st2.depositphotos.com/1000356/5730/i/450/depositphotos_57307849-stock-photo-green-leaves-background.jpg' }} // Replace with your image URL
       style={styles.background}
@@ -63,6 +84,7 @@ const AddPost = () => {
         </TouchableOpacity>
       </View>
     </ImageBackground>
+    </AuthCheck>
   );
 };
 

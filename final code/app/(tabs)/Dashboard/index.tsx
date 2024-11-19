@@ -1,66 +1,108 @@
-import { View, Text, StyleSheet } from 'react-native';
-import React from 'react';
-import { useRouter } from 'expo-router';
-import { TouchableOpacity } from 'react-native-gesture-handler';
-import { GestureHandlerRootView } from 'react-native-gesture-handler'; // Import GestureHandlerRootView
+import { View, Text, StyleSheet, ScrollView, Dimensions, Image } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { LineChart } from 'react-native-chart-kit';
+import { RefreshControl } from 'react-native';
+
+// Get the screen width for the chart
+const screenWidth = Dimensions.get('window').width;
 
 const Dashboard = () => {
-  const router = useRouter();
+  const [refreshing, setRefreshing] = useState(false);
+  const [powerData, setPowerData] = useState({
+    labels: ['6am', '9am', '12pm', '3pm', '6pm', '9pm'],
+    datasets: [
+      {
+        data: [20, 45, 78, 80, 43, 10], // Sample data
+      },
+    ],
+  });
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    // Simulate data fetch
+    setTimeout(() => {
+      setPowerData({
+        ...powerData,
+        datasets: [
+          {
+            data: powerData.datasets[0].data.map(
+              (val) => val + Math.random() * 10 - 5
+            ),
+          },
+        ],
+      });
+      setRefreshing(false);
+    }, 1000);
+  }, [powerData]);
 
   return (
-    <GestureHandlerRootView style={styles.container}> 
-      
-      <View style={styles.content}>
-        {/* Summary Cards */}
-        <View style={styles.cards}>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Total Sales</Text>
-            <Text style={styles.cardValue}>$0</Text>
-          </View>
-          
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Orders</Text>
-            <Text style={styles.cardValue}>0</Text>
+    <View style={styles.container}>
+      {/* Background Image */}
+      <Image
+        source={{ uri: 'https://thumbs.dreamstime.com/b/cartoon-planet-cute-d-icon-earth-day-environment-conservation-concept-low-poly-save-green-isolated-transparent-background-png-274956627.jpg' }} // Replace with the image URL you want to use
+        style={styles.backgroundImage}
+      />
+
+      <ScrollView
+        style={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
+        {/* Solar Monitoring Section */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Current Power Generation</Text>
+          <View style={styles.powerInfo}>
+            <Text style={styles.powerValue}>4.5 kW</Text>
+            <Text style={styles.powerTrend}>↑ 12% from yesterday</Text>
           </View>
         </View>
-      </View>
-      <TouchableOpacity style={styles.button} onPress={() => router.push('/Post')}>
-        <Text style={styles.buttonText}>Add Post</Text>
-      </TouchableOpacity>
 
-      
-      <TouchableOpacity style={styles.button} onPress={() => router.push('/addNeighbour')}>
-        <Text style={styles.buttonText}>Neighbours</Text>
-      </TouchableOpacity>
-        
-    </GestureHandlerRootView>
+        {/* Today's Generation Chart */}
+        <View style={styles.chartContainer}>
+          <Text style={styles.cardTitle}>Today's Generation</Text>
+          <LineChart
+            data={powerData}
+            width={screenWidth - 40}
+            height={250}
+            chartConfig={{
+              backgroundColor: '#fff',
+              backgroundGradientFrom: '#fff',
+              backgroundGradientTo: '#fff',
+              decimalPlaces: 1,
+              color: (opacity = 1) => `rgba(46, 125, 50, ${opacity})`,
+              style: {
+                borderRadius: 16,
+              },
+            }}
+            bezier
+            style={styles.chart}
+          />
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    position: 'relative', // Ensures the background image is properly layered behind content
   },
-  header: {
-    padding: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  headerText: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  backgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   content: {
+    flex: 1,
     padding: 16,
-  },
-  cards: {
-    flexDirection: 'row',
-    gap: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)', // Transparent background to allow the image to show through
+    borderRadius: 10,
+    zIndex: 1, // Ensures content stays above the background image
   },
   card: {
-    flex: 1,
     backgroundColor: '#fff',
     padding: 16,
     borderRadius: 8,
@@ -69,36 +111,44 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    marginBottom: 24,
+  },
+  chartContainer: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    marginBottom: 24,
+    overflow: 'hidden', // Ensures chart stays inside the container
   },
   cardTitle: {
     fontSize: 16,
     color: '#666',
     marginBottom: 8,
+    fontWeight: '600',
   },
-  cardValue: {
-    fontSize: 24,
+  powerInfo: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  powerValue: {
+    fontSize: 32,
     fontWeight: 'bold',
+    color: '#2E7D32',
   },
-  button: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 12,
-    paddingHorizontal: 40,
-    borderRadius: 25,
-    marginTop: 20,
-    width: '80%', // Reduced width
-    alignItems: 'center',
-    alignSelf: 'center', // Centers the button horizontally
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-
-  buttonText: {
-    color: '#fff',
+  powerTrend: {
+    marginLeft: 10,
+    color: '#4CAF50',
     fontSize: 16,
-    fontWeight: 'bold',
+  },
+  chart: {
+    marginVertical: 16,
+    borderRadius: 16,
+    flexShrink: 1, // Prevents chart from overflowing
   },
 });
 

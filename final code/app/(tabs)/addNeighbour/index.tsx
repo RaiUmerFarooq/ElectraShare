@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, Alert, ListRenderItem, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, Alert, ListRenderItem, Platform, ImageBackground } from 'react-native';
 import { FontAwesome6, Ionicons } from '@expo/vector-icons';
 import { AntDesign } from '@expo/vector-icons';
 
@@ -88,62 +88,73 @@ const AddNeighbour: React.FC = () => {
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
-            <View style={styles.container}>
-                <Text style={styles.title}>Neighbours Management</Text>
-                <View style={styles.buttonRow}>
-                    <TouchableOpacity
-                        style={[styles.tabButton, showRequests ? styles.activeTab : styles.inactiveTab]}
-                        onPress={() => setShowRequests(true)}
-                    >
-                        <View style={styles.tabContent}>
-                            <Ionicons name="people" size={20} color="black" />
-                            <Text style={[styles.buttonText, { color: 'black' }]}> Neighbours</Text>
-                        </View>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.tabButton, !showRequests ? styles.activeTab : styles.inactiveTab]}
-                        onPress={() => setShowRequests(false)}
-                    >
-                        <View style={styles.tabContent}>
-                            <Text style={[styles.buttonText, { color: 'black' }]}>See All </Text>
-                            <FontAwesome6 name="people-group" size={20} color="black" />
-                        </View>
-                    </TouchableOpacity>
-                </View>
+            <ImageBackground
+                source={{ uri: 'https://st2.depositphotos.com/1000356/5730/i/450/depositphotos_57307849-stock-photo-green-leaves-background.jpg' }} // Replace with your image URL
+                style={styles.background}
+            >
+                <View style={styles.container}>
+                    <Text style={styles.title}>Neighbours Management</Text>
+                    <View style={styles.buttonRow}>
+                        <TouchableOpacity
+                            style={[styles.tabButton, showRequests ? styles.activeTab : styles.inactiveTab]}
+                            onPress={() => setShowRequests(true)}
+                        >
+                            <View style={styles.tabContent}>
+                                <Ionicons name="people" size={20} color="black" />
+                                <Text style={[styles.buttonText, { color: 'black' }]}> Neighbours</Text>
+                            </View>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.tabButton, !showRequests ? styles.activeTab : styles.inactiveTab]}
+                            onPress={() => setShowRequests(false)}
+                        >
+                            <View style={styles.tabContent}>
+                                <Text style={[styles.buttonText, { color: 'black' }]}>See All </Text>
+                                <FontAwesome6 name="people-group" size={20} color="black" />
+                            </View>
+                        </TouchableOpacity>
+                    </View>
 
-                {showRequests ? (
-                    <FlatList
-                        data={requests}
-                        renderItem={renderRequestItem}
-                        keyExtractor={(item) => item.id}
-                        ListEmptyComponent={<Text style={styles.noRequests}>No pending requests</Text>}
-                    />
-                ) : (
-                    <>
+                    {showRequests ? (
                         <FlatList
-                            data={acceptedNeighbours}
-                            renderItem={renderNeighbourItem}
+                            data={requests}
+                            renderItem={renderRequestItem}
                             keyExtractor={(item) => item.id}
-                            ListEmptyComponent={<Text style={styles.noRequests}>No accepted neighbours</Text>}
+                            ListEmptyComponent={<Text style={styles.noRequests}>No pending requests</Text>}
                         />
-                        <FlatList
-                            data={rejectedRequests}
-                            renderItem={renderRejectedItem}
-                            keyExtractor={(item) => item.id}
-                            ListEmptyComponent={<Text style={styles.noRequests}>No rejected requests</Text>}
-                        />
-                    </>
-                )}
-            </View>
+                    ) : (
+                        <>
+                            <FlatList
+                                data={acceptedNeighbours}
+                                renderItem={renderNeighbourItem}
+                                keyExtractor={(item) => item.id}
+                                ListEmptyComponent={<Text style={styles.noRequests}>No accepted neighbours</Text>}
+                            />
+                            <FlatList
+                                data={rejectedRequests}
+                                renderItem={renderRejectedItem}
+                                keyExtractor={(item) => item.id}
+                                ListEmptyComponent={<Text style={styles.noRequests}>No rejected requests</Text>}
+                            />
+                        </>
+                    )}
+                </View>
+            </ImageBackground>
         </GestureHandlerRootView>
     );
 };
 
 const styles = StyleSheet.create({
+    background: {
+        flex: 1,
+        resizeMode: 'cover', // Ensures the image covers the entire screen
+        justifyContent: 'center', // Centers content in the screen
+    },
     container: {
         flex: 1,
         padding: 20,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: 'rgba(255, 255, 255, 0.8)', // Transparent background to let the image show through
+        borderRadius: 10,
     },
     title: {
         fontSize: 22,
@@ -185,7 +196,7 @@ const styles = StyleSheet.create({
         fontSize: Platform.OS === 'web' ? 16 : 14,
         color: '#000000',
         flex: 1,
-        marginRight:10,
+        marginRight: 10,
     },
     buttonContainer: {
         flexDirection: 'row',

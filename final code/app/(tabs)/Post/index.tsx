@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ImageBackground } from 'react-native';
 
 const AddPost = () => {
   const [title, setTitle] = useState('');
@@ -21,51 +21,62 @@ const AddPost = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Add New Post</Text>
+    <ImageBackground
+      source={{ uri: 'https://st2.depositphotos.com/1000356/5730/i/450/depositphotos_57307849-stock-photo-green-leaves-background.jpg' }} // Replace with your image URL
+      style={styles.background}
+    >
+      <View style={styles.container}>
+        <Text style={styles.title}>Add New Post</Text>
 
-      {/* Basic Info Section */}
-      <Text style={styles.sectionHeader}>1. Basic Information</Text>
-      <Text style={styles.label}>Post Title</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter post title"
-        value={title}
-        onChangeText={setTitle}
-      />
+        {/* Basic Info Section */}
+        <Text style={styles.sectionHeader}>1. Basic Information</Text>
+        <Text style={styles.label}>Post Title</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter post title"
+          value={title}
+          onChangeText={setTitle}
+        />
 
-      <Text style={styles.label}>Post Price</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter post price"
-        value={price.toString()}
-        onChangeText={(value) => setPrice(Number(value))}
-        keyboardType="numeric"
-      />
+        <Text style={styles.label}>Post Price</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter post price"
+          value={price.toString()}
+          onChangeText={(value) => setPrice(Number(value))}
+          keyboardType="numeric"
+        />
 
-      {/* Selling Info Section */}
-      <Text style={styles.sectionHeader}>2. Selling Information</Text>
-      <Text style={styles.label}>Units for Selling</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter units for selling"
-        value={units.toString()}
-        onChangeText={(value) => setUnits(Number(value))}
-        keyboardType="numeric"
-      />
+        {/* Selling Info Section */}
+        <Text style={styles.sectionHeader}>2. Selling Information</Text>
+        <Text style={styles.label}>Units for Selling</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter units for selling"
+          value={units.toString()}
+          onChangeText={(value) => setUnits(Number(value))}
+          keyboardType="numeric"
+        />
 
-      <TouchableOpacity style={styles.submitButton} onPress={handlePostSubmit}>
-        <Text style={styles.submitButtonText}>Submit Post</Text>
-      </TouchableOpacity>
-    </View>
+        <TouchableOpacity style={styles.submitButton} onPress={handlePostSubmit}>
+          <Text style={styles.submitButtonText}>Submit Post</Text>
+        </TouchableOpacity>
+      </View>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+    resizeMode: 'cover', // Ensures the image covers the entire screen
+    justifyContent: 'center', // Centers content in the screen
+  },
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#F9F9F9',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)', // Transparent white background to allow the image to show through
+    borderRadius: 10,
   },
   title: {
     fontSize: 24,

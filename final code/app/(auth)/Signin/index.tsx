@@ -48,7 +48,7 @@ const SignIn = () => {
         await AsyncStorage.setItem('sessionExpiry', expiration.toISOString());
 
         Alert.alert('Sign In Successful', 'You have successfully signed in.');
-        navigation.navigate('Dashboard/index');
+        navigation.navigate('(tabs)');
       } else {
         Alert.alert('Sign In Failed', 'Invalid User-Name or Password.');
       }
@@ -68,6 +68,7 @@ const SignIn = () => {
   };
 
   return (
+    
     <View style={styles.container}>
       {/* Background Image */}
       <Image

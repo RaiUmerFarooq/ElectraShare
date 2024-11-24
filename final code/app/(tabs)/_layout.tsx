@@ -33,6 +33,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <FontAwesome5 size={28} name="user-circle" color={color} />,
         }}
       />
+      <Tabs.Screen
+      name="EditProfile/index"
+      options={{tile: "Edit Profile",
+      headerShown:false,
+      tabBarButton: () => null,
+      }}
+      />
     </Tabs>
   );
 }

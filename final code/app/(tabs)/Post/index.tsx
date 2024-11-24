@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ImageBackground } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AuthCheck from '@/app/validations/AuthCheck';
-
+import apiClient from '@/app/api-component/apiClient';
 const AddPost = () => {
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState(0);
@@ -11,17 +11,28 @@ const AddPost = () => {
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
 
-  const handlePostSubmit = () => {
+  const handlePostSubmit = async() => {
     if (!title || !price || !kilowatts || !startTime || !endTime) {
       Alert.alert('Error', 'Please fill in all fields');
       console.log('Error');
       return;
     }
 
-    Alert.alert(
-      'Success',
-      `Post submitted:\nTitle: ${title}\nPrice: ${price}\nKilowatts: ${kilowatts}\nAvailable from: ${startTime} to ${endTime}`
-    );
+    // Alert.alert(
+    //   'Success',
+    //   `Post submitted:\nTitle: ${title}\nPrice: ${price}\nKilowatts: ${kilowatts}\nAvailable from: ${startTime} to ${endTime}`
+    // );
+    const postData = {
+      title,
+      price,
+      kilowatts,
+      start_time: startTime,
+      end_time: endTime,
+    };
+    const response = await apiClient.post("/post/",postData);
+    if(response.status===201){
+      console.log("data Entered successfully")
+    }
     console.log(
       'Success',
       `Post submitted:\nTitle: ${title}\nPrice: ${price}\nKilowatts: ${kilowatts}\nAvailable from: ${startTime} to ${endTime}`

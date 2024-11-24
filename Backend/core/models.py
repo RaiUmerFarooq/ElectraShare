@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
-
+from django.conf import settings
 # Custom user manager
 class UserManager(BaseUserManager):
     def create_user(self, username, email, password=None):
@@ -48,3 +48,19 @@ class User(AbstractBaseUser):
         if self._state.adding and not self.password.startswith("pbkdf2_sha256$"):  # Check if it's hashed
             self.set_password(self.password)  # Hash the password
         super().save(*args, **kwargs)
+
+class Post(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,  # Reference the custom User model
+        on_delete=models.CASCADE,
+        related_name="posts"
+    )
+    title = models.CharField(max_length=255)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    kilowatts = models.DecimalField(max_digits=10, decimal_places=2)
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.title} by {self.user.username}"

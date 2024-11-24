@@ -102,6 +102,65 @@ class ProfileView(APIView):
         user_data = {
             'username': user.username,
             'email': user.email,
+            'status':user.userRole,
         }
 
         return Response(user_data, status=status.HTTP_200_OK)
+    
+class AddPost(APIView):
+    permission_classes = [IsAuthenticated]  # Ensure the user is authenticated
+
+    def post(self, request):
+        """
+        Allow an authenticated user to create a new post.
+        Requires a valid JWT token.
+        """
+        try:
+            # Extract data from the request
+            title = request.data.get('title')
+            price = request.data.get('price')
+            kilowatts = request.data.get('kilowatts')
+            start_time = request.data.get('start_time')
+            end_time = request.data.get('end_time')
+
+            # Validate required fields
+            if not all([title, price, kilowatts, start_time, end_time]):
+                return Response(
+                    {"message": "All fields are required."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Ensure numerical fields are valid
+            try:
+                price = float(price)
+                kilowatts = float(kilowatts)
+            except ValueError:
+                return Response(
+                    {"message": "Price and kilowatts must be valid numbers."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Save the post
+            post = Post.objects.create(
+                user=request.user,  # Set the authenticated user as the post owner
+                title=title,
+                price=price,
+                kilowatts=kilowatts,
+                start_time=start_time,
+                end_time=end_time,
+            )
+
+            return Response(
+                {
+                    "message": "Post created successfully.",
+                    "post_id": post.id,  # Return the created post ID
+                },
+                status=status.HTTP_201_CREATED
+            )
+
+        except Exception as e:
+            print(f"An error occurred while creating the post: {str(e)}")
+            return Response(
+                {"message": "An unexpected error occurred."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

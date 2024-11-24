@@ -25,6 +25,7 @@ export default function Profile() {
           headers: { Authorization: `Bearer ${token}` },
         });
 
+       // console.log("Profile Data:", response.data); // Log profile data to the console
         setProfileData(response.data);
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -81,7 +82,7 @@ export default function Profile() {
       imageStyle={{ opacity: 0.3 }}
     >
       <View style={styles.headerContainer}>
-        <TouchableOpacity onPress={() => navigation.navigate("edit-profile")} style={styles.editProfileButton}>
+        <TouchableOpacity onPress={() => navigation.navigate("EditProfile/index")} style={styles.editProfileButton}>
           <Ionicons name="pencil-outline" size={24} color="#fff" />
         </TouchableOpacity>
         <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
@@ -102,8 +103,8 @@ export default function Profile() {
           <Text style={styles.email}>{profileData.email || "Not available"}</Text>
           <View style={styles.statusContainer}>
             <Text style={styles.statusTitle}>Status:</Text>
-            <Text style={profileData.status === "provider" ? styles.providerText : styles.consumerText}>
-              {profileData.status === "provider" ? "Provider" : "Consumer"}
+            <Text style={profileData.status === "producer" ? styles.providerText : styles.consumerText}>
+              {profileData.status === "producer" ? "producer" : "Consumer"}
             </Text>
           </View>
         </View>

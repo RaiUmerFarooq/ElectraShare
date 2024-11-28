@@ -39,7 +39,7 @@ const SignIn = () => {
 
       if (response.status === 200 && response.data.access) {
         // Store tokens and session expiry
-        const { access: accessToken, refresh: refreshToken } = response.data;
+        const { access: accessToken, refresh: refreshToken, status } = response.data;
         const expiration = new Date();
         expiration.setDate(expiration.getDate() + 2); // 2-day expiry
 
@@ -48,7 +48,13 @@ const SignIn = () => {
         await AsyncStorage.setItem('sessionExpiry', expiration.toISOString());
 
         Alert.alert('Sign In Successful', 'You have successfully signed in.');
-        navigation.navigate('(tabs)');
+        if(status=="producer"){
+
+          navigation.navigate('(tabs)');
+        }
+        else{
+          navigation.navigate('(consumer-tabs)');
+        }
       } else {
         Alert.alert('Sign In Failed', 'Invalid User-Name or Password.');
       }

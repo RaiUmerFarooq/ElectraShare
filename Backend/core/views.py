@@ -43,6 +43,7 @@ class LoginView(TokenObtainPairView):
             return Response({
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
+                'status':user.userRole,
             }, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

@@ -1,23 +1,50 @@
 import { Link } from "expo-router";
 import React, { useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler"; // Import GestureHandlerRootView
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios"; // Import axios for API requests
 import { useNavigation } from "expo-router";
 
 export default function Index() {
   const navigation = useNavigation();
 
   useEffect(() => {
-    const checkAuthToken = async () => {
-      const accessToken = await AsyncStorage.getItem("accessToken");
-      if (accessToken) {
-        // If a token is found, navigate to the dashboard or home screen
-        navigation.navigate("(tabs)"); // Change this to your actual home screen
+    const validateAccessToken = async () => {
+      try {
+        const accessToken = await AsyncStorage.getItem("accessToken");
+
+        if (accessToken) {
+          // Send the token to the backend to validate and get userRole
+          const response = await axios.get("http://localhost:8000/api/users/profile/", {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+
+          if (response.status === 200) {
+            const { status } = response.data; // Assuming the backend returns userRole
+
+            // Navigate based on userRole
+            if (status === "producer") {
+              navigation.navigate("(tabs)"); // Replace with the actual screen for "producer"
+            } else {
+              navigation.navigate("(consumer-tabs)"); // Replace with the actual screen for others
+            }
+          } else {
+            console.error("Token validation failed. Logging out...");
+            // Handle invalid token (e.g., remove the token and redirect to login)
+            await AsyncStorage.clear();
+            navigation.navigate("./Signin");
+          }
+        }
+      } catch (error) {
+        console.error("Error validating token:", error);
+        // Redirect to login on error
+        await AsyncStorage.clear();
+        navigation.navigate("./Signin");
       }
     };
 
-    checkAuthToken();
+    validateAccessToken();
   }, [navigation]);
 
   return (

@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios'; // Use axios for API requests
 import { View, ActivityIndicator, Alert } from 'react-native'; // Use loading indicator while checking auth
 
-const AuthCheck: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const conCheck: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigation = useNavigation();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null); // Track auth status
 
@@ -23,7 +23,7 @@ const AuthCheck: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             headers: { Authorization: `Bearer ${accessToken}` },
           });
 
-          if (response.status === 200 && response.data.status === 'producer') {
+          if (response.status === 200 && response.data.status === 'consumer') {
             setIsAuthenticated(true); // User is authenticated and a producer
           } else {
             setIsAuthenticated(false); // User is not a producer
@@ -67,4 +67,4 @@ const AuthCheck: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return isAuthenticated ? <>{children}</> : null;
 };
 
-export default AuthCheck;
+export default conCheck;

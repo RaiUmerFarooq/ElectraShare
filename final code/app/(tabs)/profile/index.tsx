@@ -1,225 +1,306 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, ActivityIndicator, ImageBackground } from "react-native";
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  Alert, 
+  Image, 
+  ActivityIndicator, 
+  ImageBackground,
+  ScrollView,
+  RefreshControl
+} from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { useNavigation } from "expo-router";
-import { Ionicons } from "react-native-vector-icons";
+import { Ionicons, MaterialIcons } from "react-native-vector-icons";
 import AuthCheck from "@/app/validations/AuthCheck";
+import conCheck from "@/app/validations/conCheck";
+import { LinearGradient } from "expo-linear-gradient";
 
 export default function Profile() {
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const token = await AsyncStorage.getItem("accessToken");
-        if (!token) {
-          Alert.alert("Error", "You are not logged in.");
-          return;
-        }
-
-        const response = await axios.get("http://localhost:8000/api/users/profile/", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-       // console.log("Profile Data:", response.data); // Log profile data to the console
-        setProfileData(response.data);
-      } catch (error) {
-        console.error("Error fetching profile:", error);
-        Alert.alert("Error", "Failed to fetch profile data.");
-      } finally {
-        setLoading(false);
+  const fetchProfile = async () => {
+    try {
+      const token = await AsyncStorage.getItem("accessToken");
+      if (!token) {
+        Alert.alert("Session Expired", "Please log in again.", [
+          { text: "OK", onPress: () => navigation.navigate("(auth)/Signin/index") }
+        ]);
+        return;
       }
-    };
 
+      const response = await axios.get("http://localhost:8000/api/users/profile/", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setProfileData(response.data);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      Alert.alert(
+        "Fetch Failed", 
+        "Unable to retrieve profile. Check your connection and try again.", 
+        [
+          { 
+            text: "Retry", 
+            onPress: () => fetchProfile() 
+          },
+          { 
+            text: "Logout", 
+            onPress: () => handleLogout() 
+          }
+        ]
+      );
+    }
+  };
+
+  useEffect(() => {
     fetchProfile();
+  }, []);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    fetchProfile().then(() => setRefreshing(false));
   }, []);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      await AsyncStorage.removeItem("accessToken");
-      await AsyncStorage.removeItem("refreshToken");
-      await AsyncStorage.removeItem("sessionExpiry");
+      await AsyncStorage.multiRemove(["accessToken", "refreshToken", "sessionExpiry"]);
 
       setTimeout(() => {
         setIsLoggingOut(false);
-        navigation.navigate("(auth)/Signin/index");
-      }, 4000);
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "(auth)/Signin/index" }],
+        });
+      }, 2000);
     } catch (error) {
       console.error("Error during logout:", error);
-      Alert.alert("Error", "Failed to logout.");
+      Alert.alert("Logout Error", "Failed to logout. Please try again.");
       setIsLoggingOut(false);
     }
   };
 
-  if (loading) {
-    return (
-      <View style={styles.loadingScreen}>
-        <ActivityIndicator size="large" color="#007bff" />
-        <Text style={styles.loadingText}>Fetching your profile...</Text>
+  const renderProfileStats = () => (
+    <View style={styles.statsContainer}>
+      <View style={styles.statBox}>
+        <Text style={styles.statNumber}>
+          {profileData?.totalProjects || 0}
+        </Text>
+        <Text style={styles.statLabel}>Total Projects</Text>
       </View>
-    );
-  }
+      <View style={styles.statBox}>
+        <Text style={styles.statNumber}>
+          {profileData?.reputation || 0}
+        </Text>
+        <Text style={styles.statLabel}>Reputation</Text>
+      </View>
+    </View>
+  );
 
-  if (isLoggingOut) {
+  if (loading || isLoggingOut) {
     return (
-      <View style={styles.loadingScreen}>
-        <ActivityIndicator size="large" color="#007bff" />
-        <Text style={styles.loadingText}>Logging out...</Text>
-      </View>
+      <LinearGradient 
+        colors={['#4c669f', '#3b5998', '#192f6a']} 
+        style={styles.loadingScreen}
+      >
+        <ActivityIndicator size="large" color="#fff" />
+        <Text style={styles.loadingText}>
+          {loading ? "Fetching your profile..." : "Logging out..."}
+        </Text>
+      </LinearGradient>
     );
   }
 
   return (
-    <AuthCheck>
-    <ImageBackground
-      source={{ uri: "https://th.bing.com/th/id/OIP.srerCJPIm2TKd1ZKp-N6EwAAAA?w=400&h=600&rs=1&pid=ImgDetMain" }} // Replace with your background image URL
-      style={styles.container}
-      imageStyle={{ opacity: 0.3 }}
-    >
-      <View style={styles.headerContainer}>
-        <TouchableOpacity onPress={() => navigation.navigate("EditProfile/index")} style={styles.editProfileButton}>
-          <Ionicons name="pencil-outline" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-          <Ionicons name="log-out-outline" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.profileImageContainer}>
-        <Image
-          source={{ uri: profileData?.profileImage || "https://via.placeholder.com/100" }}
-          style={styles.profileImage}
-        />
-      </View>
-
-      {profileData ? (
-        <View style={styles.profileInfo}>
-          <Text style={styles.username}>{profileData.username || "Not available"}</Text>
-          <Text style={styles.email}>{profileData.email || "Not available"}</Text>
-          <View style={styles.statusContainer}>
-            <Text style={styles.statusTitle}>Status:</Text>
-            <Text style={profileData.status === "producer" ? styles.providerText : styles.consumerText}>
-              {profileData.status === "producer" ? "producer" : "Consumer"}
-            </Text>
+    <conCheck>
+      <ScrollView 
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#007bff', '#28a745']}
+          />
+        }
+        style={styles.container}
+      >
+        <LinearGradient
+          colors={['#007bff', '#6c757d']}
+          style={styles.gradientBackground}
+        >
+          <View style={styles.headerContainer}>
+            <TouchableOpacity 
+              onPress={() => navigation.navigate("Settings/index")} 
+              style={styles.headerButton}
+            >
+              <Ionicons name="settings-outline" size={24} color="#fff" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={handleLogout} 
+              style={styles.headerButton}
+            >
+              <MaterialIcons name="logout" size={24} color="#fff" />
+            </TouchableOpacity>
           </View>
-        </View>
-      ) : (
-        <Text style={styles.noDataText}>No profile data available.</Text>
-      )}
-    </ImageBackground>
-    </AuthCheck>
+
+          <View style={styles.profileSection}>
+            <TouchableOpacity 
+              onPress={() => navigation.navigate("EditProfile/index")}
+              style={styles.profileImageContainer}
+            >
+              <Image
+                source={{ uri: profileData?.profileImage || "https://via.placeholder.com/150" }}
+                style={styles.profileImage}
+              />
+              <View style={styles.editOverlay}>
+                <Ionicons name="camera" size={24} color="#fff" />
+              </View>
+            </TouchableOpacity>
+
+            <Text style={styles.username}>
+              {profileData?.username || "User"}
+            </Text>
+            <Text style={styles.email}>
+              {profileData?.email || "email@example.com"}
+            </Text>
+
+            <View style={styles.statusBadge}>
+              <Text style={styles.statusText}>
+                {profileData?.status === "producer" ? "Producer" : "Consumer"}
+              </Text>
+            </View>
+          </View>
+
+          {renderProfileStats()}
+
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => navigation.navigate("EditProfile/index")}
+          >
+            <Text style={styles.actionButtonText}>Edit Profile</Text>
+          </TouchableOpacity>
+        </LinearGradient>
+      </ScrollView>
+    </conCheck>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "flex-start",
-    alignItems: "center",
-    backgroundColor: "#f5f5f5",
+    backgroundColor: '#f4f4f4',
+  },
+  gradientBackground: {
+    flex: 1,
     padding: 20,
+    paddingTop: 40,
   },
   headerContainer: {
-    width: "100%",
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
     marginBottom: 20,
   },
-  logoutButton: {
-    padding: 10,
-    backgroundColor: "#d9534f",
+  headerButton: {
+    marginLeft: 15,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 50,
-    marginLeft: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 5,
+    padding: 10,
   },
-  editProfileButton: {
-    padding: 10,
-    backgroundColor: "#007bff",
-    borderRadius: 50,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 5,
+  profileSection: {
+    alignItems: 'center',
+    marginBottom: 20,
   },
   profileImageContainer: {
-    marginBottom: 20,
+    position: 'relative',
+    marginBottom: 15,
   },
   profileImage: {
-    width: 140,
-    height: 140,
-    borderRadius: 60,
-    borderWidth: 2,
-    borderColor: "#dcdcdc",
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    borderWidth: 3,
+    borderColor: '#fff',
   },
-  profileInfo: {
-    marginBottom: 30,
-    alignItems: "center",
-    width: "100%",
-    paddingHorizontal: 20,
+  editOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 30,
+    padding: 8,
   },
   username: {
     fontSize: 24,
-    fontWeight: "700",
-    color: "#333",
-    marginBottom: 8,
+    color: '#fff',
+    fontWeight: 'bold',
+    marginBottom: 5,
   },
   email: {
     fontSize: 16,
-    color: "#666",
-    marginBottom: 16,
+    color: '#e0e0e0',
+    marginBottom: 15,
   },
-  statusContainer: {
-    marginTop: 10,
-    alignItems: "center",
-    backgroundColor: "#e9ecef",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+  statusBadge: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  statusText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginVertical: 20,
+  },
+  statBox: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    padding: 15,
     borderRadius: 10,
-    width: "100%",
-    marginBottom: 20,
+    width: '45%',
   },
-  statusTitle: {
-    fontSize: 18,
-    color: "#333",
-    fontWeight: "600",
-    marginBottom: 8,
+  statNumber: {
+    fontSize: 24,
+    color: '#fff',
+    fontWeight: 'bold',
   },
-  providerText: {
-    fontSize: 18,
-    color: "#28a745",
-    fontWeight: "bold",
+  statLabel: {
+    fontSize: 14,
+    color: '#e0e0e0',
+    marginTop: 5,
   },
-  consumerText: {
+  actionButton: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  actionButtonText: {
+    color: '#fff',
     fontSize: 18,
-    color: "#dc3545",
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   loadingScreen: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#fff",
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#3b5998',
   },
   loadingText: {
-    marginTop: 10,
+    marginTop: 15,
+    color: '#fff',
     fontSize: 18,
-    color: "#333",
-  },
-  noDataText: {
-    fontSize: 16,
-    color: "#999",
-    textAlign: "center",
-    marginTop: 20,
   },
 });

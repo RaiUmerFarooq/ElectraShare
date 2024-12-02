@@ -2,6 +2,8 @@ import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Tabs } from 'expo-router';
 import { AntDesign } from '@expo/vector-icons';
+//import MaterialIcons from '@expo/react-native-vector-icons/MaterialIcons';
+
 
 export default function TabLayout() {
   return (
@@ -20,20 +22,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <AntDesign size={28} name="addusergroup" color={color} />,
         }}
       />
-      {/* <Tabs.Screen
-        name="Post/index"  // Should match the SettingsScreen filename
-        options={{
-          title: 'Add Post',
-          tabBarIcon: ({ color }) => <MaterialIcons size={28} name="electric-bolt" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="addNeighbour/index"  // Should match the SettingsScreen filename
-        options={{
-          title: 'Add Friends',
-          tabBarIcon: ({ color }) => <FontAwesome5 size={28} name="user-friends" color={color} />,
-        }}
-      /> */}
       <Tabs.Screen
         name="profile/index"  // Should match the SettingsScreen filename
         options={{
@@ -41,6 +29,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <FontAwesome5 size={28} name="user-circle" color={color} />,
         }}
       />
+        <Tabs.Screen
+         name="ViewPost/index"  // Should match the SettingsScreen filename
+         options={{
+           title: 'Post',
+           tabBarIcon: ({ color }) => <MaterialIcons size={28} name="compost" color={color} />,
+         }}
+       />
       <Tabs.Screen
       name="EditProfile/index"
       options={{tile: "Edit Profile",

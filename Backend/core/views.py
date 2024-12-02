@@ -165,3 +165,45 @@ class AddPost(APIView):
                 {"message": "An unexpected error occurred."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+class FindProducerView(APIView):
+    permission_classes = [IsAuthenticated]  # Ensure the user is authenticated
+
+    def post(self, request):
+        """
+        Find a producer by their username or ID sent in the request body.
+        Returns the producer's username and email in JSON format.
+        """
+        # Extract the search parameters (e.g., username or ID) from the request body
+        search_query = request.data.get('username')  # Search by username
+
+
+        if not search_query :
+            return Response(
+                {"message": "Please provide a username or ID to search for a producer."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            # Find the producer by username or ID
+            if search_query:
+                user = User.objects.filter(userRole='producer', username=search_query).first()
+            if not user:
+                return Response(
+                    {"message": "Producer not found."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            # Return the producer's details
+            producer_data = {
+                "id":user.id,
+                "username": user.username,
+                "email": user.email
+            }
+            return Response(producer_data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            print(f"An error occurred while finding the producer: {str(e)}")
+            return Response(
+                {"message": "An unexpected error occurred."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

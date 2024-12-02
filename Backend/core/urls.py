@@ -7,4 +7,5 @@ urlpatterns = [
     path('verify-email/<str:uidb64>/<str:token>/', VerifyEmailView.as_view(), name='verify-email'),  # Add this line
      path('users/profile/', ProfileView.as_view(), name='user-profile'),
      path("post/",AddPost.as_view(),name="Add-post"),
+     path("users/find/",FindProducerView.as_view(),name="Find-producer"),
 ]

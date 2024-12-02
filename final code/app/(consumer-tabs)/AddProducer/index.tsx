@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ImageBackground, ScrollView, ActivityIndicator, Animated, Easing, RefreshControl } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'; // Import FontAwesomeIcon
 import { faSearchengin } from '@fortawesome/free-brands-svg-icons';
-
+import apiClient from '@/app/api-component/apiClient';
 // Producer type definition
 type Producer = {
   id: string;
@@ -33,27 +33,40 @@ const FriendRequestPage = () => {
       Alert.alert('Please enter a username');
       return;
     }
-
+  
     setLoading(true);
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      easing: Easing.ease,
-      useNativeDriver: true,
-    }).start();
-
-    const producer = producers.find((p) => p.username.toLowerCase() === username.toLowerCase());
-
-    if (producer) {
-      setFoundProducer(producer);
-      setErrorMessage('');
-    } else {
-      setFoundProducer(null);
-      setErrorMessage(`No producer found with the username "${username}".`);
+    setFoundProducer(null); // Clear previous results
+    setErrorMessage('');
+  
+    try {
+      // Fade-in animation
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        easing: Easing.ease,
+        useNativeDriver: true,
+      }).start();
+  
+      // Make a POST request with the username in the body
+      const response = await apiClient.post('/users/find/', { username });
+  
+      // Assuming the API returns a producer object
+      const producer: Producer = {
+        id: response.data.id,
+        username: response.data.username,
+        description: response.data.description || 'No description provided.',
+      };
+  
+      setFoundProducer(producer); // Display the found producer
+    } catch (error) {
+      console.error('Error fetching producer:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to fetch producer.';
+      setErrorMessage(errorMessage);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
+  
 
   const handleRequestEnergy = (producer: Producer) => {
     if (requestedProducers.find((p) => p.id === producer.id)) {

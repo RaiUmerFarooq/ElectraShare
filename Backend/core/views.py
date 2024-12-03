@@ -17,13 +17,11 @@ class RegisterView(APIView):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            user.is_active = False  # Deactivate user until email is verified
+            user.is_active = False
             user.save()
 
-            # Send verification email
             send_verification_email(user)
 
-            # Generate JWT tokens for the new user (optional)
             refresh = RefreshToken.for_user(user)
             return Response({
                 'message': "Registration successful. Please check your email to verify your account.",
@@ -90,16 +88,11 @@ class VerifyEmailView(APIView):
             print(f"An unexpected error occurred during email verification: {str(e)}")
             return Response({"message": "An unexpected error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 class ProfileView(APIView):
-    permission_classes = [IsAuthenticated]  # Ensure the user is authenticated
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        """
-        Get the profile details of the authenticated user.
-        Requires a valid JWT token.
-        """
-        user = request.user  # The user will be automatically set by JWTAuthentication
+        user = request.user
 
-        # Get the user profile data (username, email, etc.)
         user_data = {
             'username': user.username,
             'email': user.email,
@@ -109,29 +102,22 @@ class ProfileView(APIView):
         return Response(user_data, status=status.HTTP_200_OK)
     
 class AddPost(APIView):
-    permission_classes = [IsAuthenticated]  # Ensure the user is authenticated
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        """
-        Allow an authenticated user to create a new post.
-        Requires a valid JWT token.
-        """
         try:
-            # Extract data from the request
             title = request.data.get('title')
             price = request.data.get('price')
             kilowatts = request.data.get('kilowatts')
             start_time = request.data.get('start_time')
             end_time = request.data.get('end_time')
 
-            # Validate required fields
             if not all([title, price, kilowatts, start_time, end_time]):
                 return Response(
                     {"message": "All fields are required."},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Ensure numerical fields are valid
             try:
                 price = float(price)
                 kilowatts = float(kilowatts)
@@ -141,9 +127,8 @@ class AddPost(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Save the post
             post = Post.objects.create(
-                user=request.user,  # Set the authenticated user as the post owner
+                user=request.user,
                 title=title,
                 price=price,
                 kilowatts=kilowatts,
@@ -154,7 +139,7 @@ class AddPost(APIView):
             return Response(
                 {
                     "message": "Post created successfully.",
-                    "post_id": post.id,  # Return the created post ID
+                    "post_id": post.id,
                 },
                 status=status.HTTP_201_CREATED
             )
@@ -166,25 +151,18 @@ class AddPost(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 class FindProducerView(APIView):
-    permission_classes = [IsAuthenticated]  # Ensure the user is authenticated
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        """
-        Find a producer by their username or ID sent in the request body.
-        Returns the producer's username and email in JSON format.
-        """
-        # Extract the search parameters (e.g., username or ID) from the request body
-        search_query = request.data.get('username')  # Search by username
+        search_query = request.data.get('username')
 
-
-        if not search_query :
+        if not search_query:
             return Response(
                 {"message": "Please provide a username or ID to search for a producer."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         try:
-            # Find the producer by username or ID
             if search_query:
                 user = User.objects.filter(userRole='producer', username=search_query).first()
             if not user:
@@ -193,7 +171,6 @@ class FindProducerView(APIView):
                     status=status.HTTP_404_NOT_FOUND
                 )
 
-            # Return the producer's details
             producer_data = {
                 "id":user.id,
                 "username": user.username,

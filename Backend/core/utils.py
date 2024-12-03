@@ -4,22 +4,18 @@ from django.utils.encoding import force_bytes
 import jwt  # Make sure PyJWT is installed: pip install PyJWT
 from backend.settings import EMAIL_HOST_USER
 def send_verification_email(user):
-    # Generate a JWT token for the user ID
-    token = jwt.encode({'id': user.id}, 'your-secret-key', algorithm='HS256').decode('utf-8')  # Decode to string
+    token = jwt.encode({'id': user.id}, 'your-secret-key', algorithm='HS256').decode('utf-8')
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     
-    # Construct the verification link
-    verification_link = f"http://localhost:8000/api/verify-email/{uid}/{token}/"  # Ensure this matches your URL configuration
+    verification_link = f"http://localhost:8000/api/verify-email/{uid}/{token}/"
 
-    # Email subject and message
     subject = 'Verify Your Email'
     message = f'Please click the link to verify your email: {verification_link}'
     
-    # Send the email to the user's email address
     send_mail(
         subject,
         message,
-        EMAIL_HOST_USER,  # From email
-        [user.email],                   # To email
+        EMAIL_HOST_USER,
+        [user.email],
         fail_silently=False
     )

@@ -1,46 +1,44 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigation } from '@react-navigation/native'; // or 'expo-router' if using that for navigation
+import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios'; // Use axios for API requests
-import { View, ActivityIndicator, Alert } from 'react-native'; // Use loading indicator while checking auth
+import axios from 'axios';
+import { View, ActivityIndicator, Alert } from 'react-native';
 
 const conCheck: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigation = useNavigation();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null); // Track auth status
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   const checkAuthToken = async () => {
     try {
       const accessToken = await AsyncStorage.getItem('accessToken');
-      const expiry = await AsyncStorage.getItem('sessionExpiry'); // Retrieve expiry as ISO string
+      const expiry = await AsyncStorage.getItem('sessionExpiry');
 
       if (accessToken && expiry) {
-        const currentTime = new Date().getTime(); // Current time in milliseconds
-        const expiryTime = new Date(expiry).getTime(); // Parse ISO string to Date and get milliseconds
+        const currentTime = new Date().getTime();
+        const expiryTime = new Date(expiry).getTime();
 
         if (expiryTime > currentTime) {
-          // Validate the token with the backend
           const response = await axios.get("http://localhost:8000/api/users/profile/", {
             headers: { Authorization: `Bearer ${accessToken}` },
           });
 
           if (response.status === 200 && response.data.status === 'consumer') {
-            setIsAuthenticated(true); // User is authenticated and a producer
+            setIsAuthenticated(true);
           } else {
-            setIsAuthenticated(false); // User is not a producer
+            setIsAuthenticated(false);
             Alert.alert('Access Denied', 'You are not authorized to access this section.');
-            navigation.navigate('(auth)/Signin/index'); // Navigate back to SignIn
+            navigation.navigate('(auth)/Signin/index');
           }
         } else {
-          // Token is expired, clear storage and navigate to SignIn
           await AsyncStorage.removeItem('accessToken');
           await AsyncStorage.removeItem('sessionExpiry');
-          await AsyncStorage.removeItem('refreshToken'); // Clear refreshToken as well if needed
+          await AsyncStorage.removeItem('refreshToken');
           setIsAuthenticated(false);
           Alert.alert('Session Expired', 'Please log in again.');
           navigation.navigate('(auth)/Signin/index');
         }
       } else {
-        setIsAuthenticated(false); // Token or expiry not found
+        setIsAuthenticated(false);
         navigation.navigate('(auth)/Signin/index');
       }
     } catch (error) {
@@ -54,7 +52,6 @@ const conCheck: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     checkAuthToken();
   }, [navigation]);
 
-  // Show a loading spinner while checking the authentication status
   if (isAuthenticated === null) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -63,7 +60,6 @@ const conCheck: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     );
   }
 
-  // Render the component passed as a child only if the user is authenticated and a producer
   return isAuthenticated ? <>{children}</> : null;
 };
 

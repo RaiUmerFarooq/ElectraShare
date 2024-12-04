@@ -69,7 +69,7 @@ export default function EditProfile() {
       imageStyle={{ opacity: 0.3 }}
     >
       <View style={styles.headerContainer}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => navigation.navigate("profile/index")} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
       </View>

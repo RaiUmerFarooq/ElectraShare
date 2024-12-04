@@ -11,6 +11,7 @@ from .serializers import RegisterSerializer, LoginSerializer
 from .utils import send_verification_email
 from .models import *
 from rest_framework.permissions import IsAuthenticated
+from django.db.models import Q
 
 class RegisterView(APIView):
     def post(self, request):
@@ -158,28 +159,166 @@ class FindProducerView(APIView):
 
         if not search_query:
             return Response(
-                {"message": "Please provide a username or ID to search for a producer."},
+                {"message": "Please provide a username to search for a producer."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         try:
-            if search_query:
-                user = User.objects.filter(userRole='producer', username=search_query).first()
+            # Find the producer
+            user = User.objects.filter(userRole='producer', username=search_query).first()
             if not user:
                 return Response(
                     {"message": "Producer not found."},
                     status=status.HTTP_404_NOT_FOUND
                 )
 
+            # Check the connection status from the Request model
+            connection_status = "not connected"
+            user_request = FriendRequest.objects.filter(
+                (Q(from_user=user) | Q(to_user=user)),  # Querying if the user is involved as either from_user or to_user
+                (Q(status="pending") | Q(status="accepted") | Q(status="rejected"))
+            ).first()
+
+            if user_request:
+                connection_status = user_request.status
+            else:
+                # If no matching request found, status remains "not connected"
+                connection_status = "not connected"
+
+            # Prepare the response data including the connection status
             producer_data = {
-                "id":user.id,
+                "id": user.id,
                 "username": user.username,
-                "email": user.email
+                "email": user.email,
+                "description": getattr(user, "description", "No description provided."),
+                "status": connection_status  # Include the status in the response
             }
+
             return Response(producer_data, status=status.HTTP_200_OK)
 
         except Exception as e:
             print(f"An error occurred while finding the producer: {str(e)}")
+            return Response(
+                {"message": "An unexpected error occurred."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class SendFriendRequestView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        producer_id = request.data.get('producer_id')
+        
+        try:
+            # Check if the requesting user is a consumer
+            if request.user.userRole != 'consumer':
+                return Response(
+                    {"message": "Only consumers can send friend requests."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            # Get the producer
+            producer = get_object_or_404(User, id=producer_id, userRole='producer')
+            
+            # Check if request already exists
+            existing_request = FriendRequest.objects.filter(
+                from_user=request.user,
+                to_user=producer
+            ).first()
+            
+            if existing_request:
+                return Response(
+                    {"message": f"A friend request to this producer is already {existing_request.status}."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Create friend request
+            FriendRequest.objects.create(
+                from_user=request.user,
+                to_user=producer
+            )
+
+            return Response(
+                {"message": "Friend request sent successfully."},
+                status=status.HTTP_201_CREATED
+            )
+
+        except Exception as e:
+            return Response(
+                {"message": "An unexpected error occurred."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class ManageFriendRequestView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, request_id):
+        action = request.data.get('action')
+        
+        try:
+            # Verify the user is a producer
+            if request.user.userRole != 'producer':
+                return Response(
+                    {"message": "Only producers can manage friend requests."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            # Get the friend request
+            friend_request = get_object_or_404(
+                FriendRequest,
+                id=request_id,
+                to_user=request.user,
+                status='pending'
+            )
+
+            if action == 'accept':
+                friend_request.status = 'accepted'
+                message = "Friend request accepted."
+            elif action == 'reject':
+                friend_request.status = 'rejected'
+                message = "Friend request rejected."
+            else:
+                return Response(
+                    {"message": "Invalid action. Use 'accept' or 'reject'."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            friend_request.save()
+            return Response({"message": message}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response(
+                {"message": "An unexpected error occurred."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class ListFriendRequestsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            if request.user.userRole == 'producer':
+                # For producers: show received pending requests
+                requests = FriendRequest.objects.filter(
+                    to_user=request.user
+                )
+            else:
+                # For consumers: show sent requests
+                requests = FriendRequest.objects.filter(
+                    from_user=request.user
+                )
+
+            requests_data = [{
+                'id': req.id,
+                'from_user': req.from_user.username,
+                'to_user': req.to_user.username,
+                'status': req.status,
+                'created_at': req.created_at
+            } for req in requests]
+
+            return Response(requests_data, status=status.HTTP_200_OK)
+
+        except Exception as e:
             return Response(
                 {"message": "An unexpected error occurred."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

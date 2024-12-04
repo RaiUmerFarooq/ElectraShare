@@ -1,6 +1,7 @@
 // components/Checkout.tsx
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Button } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { Button } from 'react-native-paper'; // Using Paper's Button for consistency
 
 type Post = {
   title: string;
@@ -15,9 +16,10 @@ type Post = {
 type Props = {
   post: Post;
   onCheckoutComplete: (post: Post) => void;
+  onBack: () => void; // New prop for handling back navigation
 };
 
-const Checkout: React.FC<Props> = ({ post, onCheckoutComplete }) => {
+const Checkout: React.FC<Props> = ({ post, onCheckoutComplete, onBack }) => {
   if (!post) {
     return (
       <View style={styles.container}>
@@ -34,13 +36,23 @@ const Checkout: React.FC<Props> = ({ post, onCheckoutComplete }) => {
     setTimeout(() => {
       setIsProcessing(false);
       setPaymentStatus('Completed');
-      onCheckoutComplete(post); // Trigger the checkout completion with post details
+      onCheckoutComplete(post);
     }, 2000);
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Checkout</Text>
+      <View style={styles.header}>
+        <Button
+          mode="outlined"
+          icon="arrow-left"
+          onPress={onBack}
+          style={styles.backButton}
+        >
+          Back
+        </Button>
+        <Text style={styles.title}>Checkout</Text>
+      </View>
 
       <View style={styles.postDetails}>
         <Text style={styles.detailLabel}>Title: </Text>
@@ -65,7 +77,13 @@ const Checkout: React.FC<Props> = ({ post, onCheckoutComplete }) => {
       {isProcessing ? (
         <Text style={styles.processingText}>Processing Payment...</Text>
       ) : (
-        <Button title="Complete Checkout" onPress={handleCheckout} />
+        <Button
+          mode="contained"
+          onPress={handleCheckout}
+          style={styles.checkoutButton}
+        >
+          Complete Checkout
+        </Button>
       )}
 
       {paymentStatus && <Text style={styles.statusText}>{`Payment Status: ${paymentStatus}`}</Text>}
@@ -76,15 +94,23 @@ const Checkout: React.FC<Props> = ({ post, onCheckoutComplete }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
     padding: 20,
     backgroundColor: '#f9f9f9',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  backButton: {
+    marginRight: 10,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
+    flex: 1,
     textAlign: 'center',
-    marginBottom: 20,
+    marginRight: 50, // To offset the back button width and maintain center alignment
   },
   postDetails: {
     marginBottom: 20,
@@ -108,6 +134,10 @@ const styles = StyleSheet.create({
     color: 'red',
     textAlign: 'center',
     fontSize: 18,
+  },
+  checkoutButton: {
+    marginTop: 10,
+    backgroundColor: '#4CAF50',
   },
 });
 

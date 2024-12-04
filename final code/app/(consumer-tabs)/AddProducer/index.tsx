@@ -1,112 +1,149 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ImageBackground, ScrollView, ActivityIndicator, Animated, Easing, RefreshControl } from 'react-native';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'; // Import FontAwesomeIcon
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  ImageBackground,
+  ScrollView,
+  ActivityIndicator,
+  Animated,
+  Easing,
+} from 'react-native';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearchengin } from '@fortawesome/free-brands-svg-icons';
 import apiClient from '@/app/api-component/apiClient';
+
 // Producer type definition
 type Producer = {
   id: string;
   username: string;
   description: string;
+  status: string; // Added status to track the connection status
 };
 
-const producers: Producer[] = [
-  { id: '1', username: 'producer1', description: 'Available for sharing 100 kWh of energy daily.' },
-  { id: '2', username: 'producer2', description: 'Available for sharing 50 kWh of energy daily.' },
-  { id: '3', username: 'producer3', description: 'Available for sharing 200 kWh of energy daily.' },
-  { id: '4', username: 'producer4', description: 'Available for sharing 100 kWh of energy daily.' },
-  { id: '5', username: 'producer5', description: 'Available for sharing 50 kWh of energy daily.' },
-  { id: '6', username: 'producer6', description: 'Available for sharing 200 kWh of energy daily.' },
-];
+type RequestStatus = 'idle' | 'loading' | 'pending' | 'accepted' | 'rejected';
 
-const FriendRequestPage = () => {
+const AddProducer = () => {
   const [username, setUsername] = useState('');
   const [foundProducer, setFoundProducer] = useState<Producer | null>(null);
   const [loading, setLoading] = useState(false);
-  const [requestedProducers, setRequestedProducers] = useState<Producer[]>([]);
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const [refreshing, setRefreshing] = useState(false);
-  const fadeAnim = useState(new Animated.Value(0))[0];  // Animation for fade-in
+  const [requestStatus, setRequestStatus] = useState<RequestStatus>('idle');
+  const fadeAnim = useState(new Animated.Value(0))[0];
 
   const handleSearch = async () => {
     if (!username) {
-      Alert.alert('Please enter a username');
+      Alert.alert('Validation Error', 'Please enter a username');
       return;
     }
-  
+
     setLoading(true);
-    setFoundProducer(null); // Clear previous results
+    setFoundProducer(null);
     setErrorMessage('');
-  
+    setRequestStatus('idle');
+
     try {
-      // Fade-in animation
+      // Animation for smooth UI appearance
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 500,
         easing: Easing.ease,
         useNativeDriver: true,
       }).start();
-  
-      // Make a POST request with the username in the body
+
       const response = await apiClient.post('/users/find/', { username });
-  
-      // Assuming the API returns a producer object
+
       const producer: Producer = {
         id: response.data.id,
         username: response.data.username,
         description: response.data.description || 'No description provided.',
+        status: response.data.status || 'not connected', // Set the status field
       };
-  
-      setFoundProducer(producer); // Display the found producer
+
+      setFoundProducer(producer);
     } catch (error) {
       console.error('Error fetching producer:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to fetch producer.';
+      const errorMessage =
+        error.response?.data?.message || 'Failed to fetch producer.';
       setErrorMessage(errorMessage);
     } finally {
       setLoading(false);
     }
   };
-  
 
-  const handleRequestEnergy = (producer: Producer) => {
-    if (requestedProducers.find((p) => p.id === producer.id)) {
-      Alert.alert('Request Already Sent', `You have already requested energy from ${producer.username}.`);
-      return;
+  const handleSendFriendRequest = async (producerId: string) => {
+    setRequestStatus('loading');
+
+    try {
+      const response = await apiClient.post('/friend-request/send/', {
+        producer_id: producerId,
+      });
+
+      if (response.status === 201) {
+        // If the status is "not connected," change it to "pending" while the request is being processed
+        setRequestStatus('pending');
+        Alert.alert('Success', 'Friend request sent successfully.');
+      }
+    } catch (error) {
+      console.error('Error sending friend request:', error);
+      const errorMessage =
+        error.response?.data?.message || 'Failed to send friend request.';
+      setRequestStatus('rejected');
+      Alert.alert('Error', errorMessage);
+    }
+  };
+
+  const renderFriendRequestButton = () => {
+    if (foundProducer?.status === 'not connected' && requestStatus === 'pending') {
+      return (
+        <View style={[styles.requestButton, { backgroundColor: '#FF9800' }]}>
+          <Text style={styles.buttonText}>Pending...</Text>
+        </View>
+      );
     }
 
-    Alert.alert(
-      'Energy Request Sent',
-      `You have successfully requested energy from ${producer.username}.`,
-      [{ text: 'OK' }]
-    );
-
-    setRequestedProducers((prev) => [...prev, producer]);
-  };
-
-  const handleRemoveRequest = (producer: Producer) => {
-    setRequestedProducers((prev) => prev.filter((p) => p.id !== producer.id));
-
-    Alert.alert('Request Removed', `You have removed your request from ${producer.username}.`);
-  };
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-      Alert.alert('List refreshed');
-    }, 1500);
+    switch (requestStatus) {
+      case 'loading':
+        return (
+          <View style={styles.requestButton}>
+            <ActivityIndicator size="small" color="#fff" />
+          </View>
+        );
+      case 'accepted':
+        return (
+          <View style={[styles.requestButton, { backgroundColor: '#4CAF50' }]}>
+            <Text style={styles.buttonText}>Request Accepted ✓</Text>
+          </View>
+        );
+      case 'rejected':
+        return (
+          <View style={[styles.requestButton, { backgroundColor: '#FF0000' }]}>
+            <Text style={styles.buttonText}>Request Rejected ✗</Text>
+          </View>
+        );
+      default:
+        return (
+          <TouchableOpacity
+            style={styles.requestButton}
+            onPress={() => handleSendFriendRequest(foundProducer!.id)}
+          >
+            <Text style={styles.buttonText}>Send Friend Request</Text>
+          </TouchableOpacity>
+        );
+    }
   };
 
   return (
     <ImageBackground
-      source={{ uri: 'https://cdn.ecommercedns.uk/files/5/235315/5/12792415/solar-power.jpg' }}
+      source={{
+        uri: 'https://cdn.ecommercedns.uk/files/5/235315/5/12792415/solar-power.jpg',
+      }}
       style={styles.background}
     >
-      <ScrollView
-        contentContainerStyle={styles.container}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
-        {/* Search Input with FontAwesome Icon */}
+      <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.searchContainer}>
           <TextInput
             style={styles.input}
@@ -119,24 +156,26 @@ const FriendRequestPage = () => {
             onPress={handleSearch}
             disabled={loading}
           >
-            <FontAwesomeIcon icon={faSearchengin} color="#fff" size={40} /> {/* Larger size */}
+            <FontAwesomeIcon icon={faSearchengin} color="#fff" size={40} />
           </TouchableOpacity>
         </View>
 
-        {loading && <ActivityIndicator size="large" color="#4CAF50" style={styles.loadingIndicator} />}
+        {loading && (
+          <ActivityIndicator size="large" color="#4CAF50" style={styles.loadingIndicator} />
+        )}
 
         <Animated.View style={[styles.result, { opacity: fadeAnim }]}>
           {foundProducer ? (
             <View style={styles.card}>
               <Text style={styles.foundTitle}>Producer Found:</Text>
               <Text style={styles.producerUsername}>{foundProducer.username}</Text>
-              <Text style={styles.producerDescription}>{foundProducer.description}</Text>
-              <TouchableOpacity
-                style={styles.requestButton}
-                onPress={() => handleRequestEnergy(foundProducer)}
-              >
-                <Text style={styles.buttonText}>Request Energy</Text>
-              </TouchableOpacity>
+              <Text style={styles.producerDescription}>
+                {foundProducer.description}
+              </Text>
+              <Text style={styles.connectionStatus}>
+                Connection Status: {foundProducer.status}
+              </Text>
+              {renderFriendRequestButton()}
             </View>
           ) : null}
 
@@ -146,44 +185,6 @@ const FriendRequestPage = () => {
             </View>
           ) : null}
         </Animated.View>
-
-        <Text style={styles.title}>Available Producers for Energy Sharing</Text>
-        {producers.length > 0 ? (
-          producers.map((producer) => (
-            !requestedProducers.find((p) => p.id === producer.id) && (
-              <View key={producer.id} style={styles.card}>
-                <Text style={styles.producerUsername}>{producer.username}</Text>
-                <Text style={styles.producerDescription}>{producer.description}</Text>
-                <TouchableOpacity
-                  style={styles.requestButton}
-                  onPress={() => handleRequestEnergy(producer)}
-                >
-                  <Text style={styles.buttonText}>Request Energy</Text>
-                </TouchableOpacity>
-              </View>
-            )
-          ))
-        ) : (
-          <Text style={styles.noProducers}>No producers available for energy sharing.</Text>
-        )}
-
-        <Text style={styles.title}>Your Requested Producers</Text>
-        {requestedProducers.length > 0 ? (
-          requestedProducers.map((producer) => (
-            <View key={producer.id} style={styles.card}>
-              <Text style={styles.producerUsername}>{producer.username}</Text>
-              <Text style={styles.producerDescription}>Energy request sent.</Text>
-              <TouchableOpacity
-                style={styles.removeButton}
-                onPress={() => handleRemoveRequest(producer)}
-              >
-                <Text style={styles.buttonText}>Remove Request</Text>
-              </TouchableOpacity>
-            </View>
-          ))
-        ) : (
-          <Text style={styles.noRequests}>You have not requested any energy yet.</Text>
-        )}
       </ScrollView>
     </ImageBackground>
   );
@@ -222,12 +223,12 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#4CAF50', // Add a color to make the button prominent
+    backgroundColor: '#4CAF50',
     shadowColor: '#000',
     shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 5,
-    elevation: 5, // Add elevation for Android shadow
+    elevation: 5,
   },
   buttonDisabled: {
     backgroundColor: '#D3D3D3',
@@ -263,12 +264,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#555',
   },
+  connectionStatus: {
+    fontSize: 16,
+    marginTop: 10,
+    color: '#777',
+  },
   requestButton: {
     backgroundColor: '#4CAF50',
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 10,
     marginTop: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   buttonText: {
     color: '#fff',
@@ -285,29 +293,6 @@ const styles = StyleSheet.create({
     color: '#721c24',
     fontSize: 16,
   },
-  noProducers: {
-    fontSize: 16,
-    color: '#999',
-    marginTop: 20,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginTop: 30,
-    marginBottom: 10,
-  },
-  noRequests: {
-    fontSize: 16,
-    color: '#999',
-    marginTop: 20,
-  },
-  removeButton: {
-    backgroundColor: '#FF5733',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    marginTop: 15,
-  },
 });
 
-export default FriendRequestPage;
+export default AddProducer;

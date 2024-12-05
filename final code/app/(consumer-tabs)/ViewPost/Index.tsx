@@ -18,7 +18,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';  
 import Checkout from '@/components/checkout'; // Import Checkout  
 import TransactionHistory from '@/components/TransactionHistory'; // Import TransactionHistory  
-  
+import ConCheck from '@/app/validations/conCheck';
 // Mock data for solar energy posts  
 const DUMMY_POSTS = [  
   {  
@@ -162,6 +162,7 @@ const ViewPost = () => {
   );  
   
   return (  
+    <ConCheck>
    <ImageBackground  
     source={{ uri: 'https://cdn.ecommercedns.uk/files/5/235315/5/12792415/solar-power.jpg' }}  
     style={styles.background}  
@@ -218,6 +219,7 @@ const ViewPost = () => {
       )}  
     </ScrollView>  
    </ImageBackground>  
+   </ConCheck>
   );  
 };  
   

@@ -27,9 +27,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile/index"  // Should match the SettingsScreen filename
+        name="ProProfile/index"  // Should match the SettingsScreen filename
         options={{
           title: 'Profile',
+          headerShown:false,
           tabBarIcon: ({ color }) => <FontAwesome5 size={28} name="user-circle" color={color} />,
         }}
       />

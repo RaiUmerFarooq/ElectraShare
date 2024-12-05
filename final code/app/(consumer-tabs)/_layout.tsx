@@ -31,6 +31,7 @@ export default function TabLayout() {
           name="profile/index"
           options={{
             title: 'Profile',
+            headerShown: false,
             tabBarIcon: ({ color }) => <FontAwesome5 size={28} name="user-circle" color={color} />,
           }}
         />

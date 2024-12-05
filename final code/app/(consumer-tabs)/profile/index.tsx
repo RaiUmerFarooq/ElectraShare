@@ -16,7 +16,7 @@ import axios from "axios";
 import { useNavigation } from "expo-router";
 import { Ionicons, MaterialIcons } from "react-native-vector-icons";
 import AuthCheck from "@/app/validations/AuthCheck";
-import conCheck from "@/app/validations/conCheck";
+import ConCheck from "@/app/validations/conCheck";
 import { LinearGradient } from "expo-linear-gradient";
 
 export default function Profile() {
@@ -95,13 +95,13 @@ export default function Profile() {
         <Text style={styles.statNumber}>
           {profileData?.totalProjects || 0}
         </Text>
-        <Text style={styles.statLabel}>Total Projects</Text>
+        <Text style={styles.statLabel}>Total Consumption</Text>
       </View>
       <View style={styles.statBox}>
         <Text style={styles.statNumber}>
           {profileData?.reputation || 0}
         </Text>
-        <Text style={styles.statLabel}>Reputation</Text>
+        <Text style={styles.statLabel}>Total Payment</Text>
       </View>
     </View>
   );
@@ -121,87 +121,91 @@ export default function Profile() {
   }
 
   return (
-    <conCheck>
-      <ScrollView 
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#007bff', '#28a745']}
-          />
-        }
-        style={styles.container}
-      >
-        <LinearGradient
-          colors={['#007bff', '#6c757d']}
-          style={styles.gradientBackground}
+    <ConCheck>
+      <View style={styles.fullBackground}>
+        {/* Background Image */}
+        <ImageBackground
+          source={{ uri: "https://via.placeholder.com/800x1600" }} // Replace with your desired image URL
+          style={StyleSheet.absoluteFillObject}
+          resizeMode="cover"
         >
-          <View style={styles.headerContainer}>
-            <TouchableOpacity 
-              onPress={() => navigation.navigate("Settings/index")} 
-              style={styles.headerButton}
-            >
-              <Ionicons name="settings-outline" size={24} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={handleLogout} 
-              style={styles.headerButton}
-            >
-              <MaterialIcons name="logout" size={24} color="#fff" />
-            </TouchableOpacity>
-          </View>
+          {/* Background Gradient Overlay */}
+          <LinearGradient
+            colors={["rgba(0, 123, 255, 0.8)", "rgba(108, 117, 125, 0.8)"]}
+            style={StyleSheet.absoluteFillObject}
+          />
 
-          <View style={styles.profileSection}>
-            <TouchableOpacity 
-              onPress={() => navigation.navigate("EditProfile/index")}
-              style={styles.profileImageContainer}
-            >
-              <Image
-                source={{ uri: profileData?.profileImage || "https://via.placeholder.com/150" }}
-                style={styles.profileImage}
+          {/* Main Content */}
+          <ScrollView
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={["#007bff", "#28a745"]}
               />
-              <View style={styles.editOverlay}>
-                <Ionicons name="camera" size={24} color="#fff" />
-              </View>
-            </TouchableOpacity>
-
-            <Text style={styles.username}>
-              {profileData?.username || "User"}
-            </Text>
-            <Text style={styles.email}>
-              {profileData?.email || "email@example.com"}
-            </Text>
-
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusText}>
-                {profileData?.status === "producer" ? "Producer" : "Consumer"}
-              </Text>
-            </View>
-          </View>
-
-          {renderProfileStats()}
-
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => navigation.navigate("EditProfile/index")}
+            }
+            style={styles.container}
           >
-            <Text style={styles.actionButtonText}>Edit Profile</Text>
-          </TouchableOpacity>
-        </LinearGradient>
-      </ScrollView>
-    </conCheck>
+            <View style={styles.headerContainer}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("Settings/index")}
+                style={styles.headerButton}
+              >
+                <Ionicons name="settings-outline" size={24} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleLogout} style={styles.headerButton}>
+                <MaterialIcons name="logout" size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.profileSection}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("EditProfile/index")}
+                style={styles.profileImageContainer}
+              >
+                <Image
+                  source={{
+                    uri: profileData?.profileImage || "https://via.placeholder.com/150",
+                  }}
+                  style={styles.profileImage}
+                />
+                <View style={styles.editOverlay}>
+                  <Ionicons name="camera" size={24} color="#fff" />
+                </View>
+              </TouchableOpacity>
+
+              <Text style={styles.username}>{profileData?.username || "User"}</Text>
+              <Text style={styles.email}>{profileData?.email || "email@example.com"}</Text>
+
+              <View style={styles.statusBadge}>
+                <Text style={styles.statusText}>
+                  {profileData?.status === "producer" ? "Producer" : "Consumer"}
+                </Text>
+              </View>
+            </View>
+
+            {renderProfileStats()}
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation.navigate("EditProfile/index")}
+            >
+              <Text style={styles.actionButtonText}>Edit Profile</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </ImageBackground>
+      </View>
+    </ConCheck>
   );
 }
 
 const styles = StyleSheet.create({
+  fullBackground: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#f4f4f4',
-  },
-  gradientBackground: {
-    flex: 1,
-    padding: 20,
-    paddingTop: 40,
+    backgroundColor: 'transparent', // Ensure transparency for the background to show through
   },
   headerContainer: {
     flexDirection: 'row',
@@ -209,7 +213,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   headerButton: {
+    marginTop:15,
     marginLeft: 15,
+    marginRight:10,
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 50,
     padding: 10,
@@ -299,8 +305,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#3b5998',
   },
   loadingText: {
-    marginTop: 15,
+    marginTop: 10,
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
   },
 });

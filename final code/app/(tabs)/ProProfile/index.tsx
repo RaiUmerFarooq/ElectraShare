@@ -7,16 +7,14 @@ import {
   Alert, 
   Image, 
   ActivityIndicator, 
-  ImageBackground,
   ScrollView,
-  RefreshControl
+  RefreshControl,
+  ImageBackground
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { useNavigation } from "expo-router";
 import { Ionicons, MaterialIcons } from "react-native-vector-icons";
-import AuthCheck from "@/app/validations/AuthCheck";
-import conCheck from "@/app/validations/conCheck";
 import { LinearGradient } from "expo-linear-gradient";
 
 export default function Profile() {
@@ -29,12 +27,6 @@ export default function Profile() {
   const fetchProfile = async () => {
     try {
       const token = await AsyncStorage.getItem("accessToken");
-      if (!token) {
-        Alert.alert("Session Expired", "Please log in again.", [
-          { text: "OK", onPress: () => navigation.navigate("(auth)/Signin/index") }
-        ]);
-        return;
-      }
 
       const response = await axios.get("http://localhost:8000/api/users/profile/", {
         headers: { Authorization: `Bearer ${token}` },
@@ -95,13 +87,13 @@ export default function Profile() {
         <Text style={styles.statNumber}>
           {profileData?.totalProjects || 0}
         </Text>
-        <Text style={styles.statLabel}>Total Projects</Text>
+        <Text style={styles.statLabel}>Total Production</Text>
       </View>
       <View style={styles.statBox}>
         <Text style={styles.statNumber}>
           {profileData?.reputation || 0}
         </Text>
-        <Text style={styles.statLabel}>Reputation</Text>
+        <Text style={styles.statLabel}>Total delivered</Text>
       </View>
     </View>
   );
@@ -121,20 +113,24 @@ export default function Profile() {
   }
 
   return (
-    <conCheck>
-      <ScrollView 
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#007bff', '#28a745']}
-          />
-        }
-        style={styles.container}
+    <ImageBackground
+      source={{ uri: "https://via.placeholder.com/800x1600" }}
+      style={StyleSheet.absoluteFillObject}
+      resizeMode="cover"
+    >
+      <LinearGradient
+        colors={['rgba(0, 123, 255, 0.8)', 'rgba(108, 117, 125, 0.8)']}
+        style={StyleSheet.absoluteFillObject}
       >
-        <LinearGradient
-          colors={['#007bff', '#6c757d']}
-          style={styles.gradientBackground}
+        <ScrollView 
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#007bff', '#28a745']}
+            />
+          }
+          style={styles.container}
         >
           <View style={styles.headerContainer}>
             <TouchableOpacity 
@@ -187,23 +183,26 @@ export default function Profile() {
           >
             <Text style={styles.actionButtonText}>Edit Profile</Text>
           </TouchableOpacity>
-        </LinearGradient>
-      </ScrollView>
-    </conCheck>
+        </ScrollView>
+      </LinearGradient>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f4f4f4',
+    backgroundColor: 'transparent',
   },
   gradientBackground: {
     flex: 1,
     padding: 20,
     paddingTop: 40,
+    height: '100%',  // Ensures full screen height
   },
   headerContainer: {
+    marginTop:15,
+    marginRight:10,
     flexDirection: 'row',
     justifyContent: 'flex-end',
     marginBottom: 20,

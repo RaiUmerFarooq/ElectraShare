@@ -12,7 +12,7 @@ import {
   import { LineChart } from 'react-native-chart-kit';
   import { useNavigation } from '@react-navigation/native'; // Import navigation
  // import AuthCheck from '@/app/validations/AuthCheck';
-import conCheck from '../validations/conCheck';
+import ConCheck from '../validations/conCheck';
   
   // Get the screen width for the chart
   const screenWidth = Dimensions.get('window').width;
@@ -52,7 +52,7 @@ import conCheck from '../validations/conCheck';
     }, [powerData]);
   
     return (
-     <conCheck>
+     <ConCheck>
       <View style={styles.container}>
         {/* Background Image */}
         <Image
@@ -100,7 +100,7 @@ import conCheck from '../validations/conCheck';
           </View>
         </ScrollView>
       </View>
-      </conCheck>
+      </ConCheck>
     );
   };
   

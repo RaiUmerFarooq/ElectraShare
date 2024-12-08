@@ -1,4 +1,3 @@
-# serializers.py
 from rest_framework import serializers
 from django.contrib.auth import get_user_model, authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -44,3 +43,18 @@ class LoginSerializer(serializers.Serializer):
         raise serializers.ValidationError("Invalid credentials")
 
 #, password=data['password']
+
+class ProfileEditSerializer(serializers.ModelSerializer):
+    image = serializers.ImageField(required=False)  # Optional profile image
+
+    class Meta:
+        model = User
+        fields = ['username', 'contactNo', 'image']  # Fields that can be updated
+
+    def update(self, instance, validated_data):
+        # Update the instance with the validated data
+        instance.username = validated_data.get('username', instance.username)
+        instance.contactNo = validated_data.get('contactNo', instance.contactNo)
+        instance.image = validated_data.get('image', instance.image)
+        instance.save()
+        return instance

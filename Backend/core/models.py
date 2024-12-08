@@ -30,6 +30,7 @@ class User(AbstractBaseUser):
     contactNo = models.CharField(max_length=11, null=True)
     userRole = models.TextField(default="", max_length=8)
     password = models.CharField(max_length=128)
+    image = models.ImageField(upload_to='profile_images/', blank=True, null=True)  # New field for profile image
     is_active = models.BooleanField(default=False)  # inherited from AbstractBaseUser
 
     # Define the unique identifier for authentication

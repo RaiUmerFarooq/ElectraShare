@@ -1,6 +1,6 @@
-from django.shortcuts import render, get_object_or_404
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes, force_str
+from django.shortcuts import get_object_or_404
+from django.utils.http import urlsafe_base64_decode
+from django.utils.encoding import force_str
 import jwt
 from rest_framework import status
 from rest_framework.response import Response
@@ -10,8 +10,12 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import RegisterSerializer, LoginSerializer
 from .utils import send_verification_email
 from .models import *
+from .serializers import *
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 class RegisterView(APIView):
     def post(self, request):
@@ -319,6 +323,67 @@ class ListFriendRequestsView(APIView):
             return Response(requests_data, status=status.HTTP_200_OK)
 
         except Exception as e:
+            return Response(
+                {"message": "An unexpected error occurred."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class EditProfileView(APIView):
+    permission_classes = [IsAuthenticated]  # Ensure only authenticated users can access this
+
+    def put(self, request):
+        user = request.user  # Get the currently authenticated user
+        serializer = ProfileEditSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                "message": "Profile updated successfully",
+                "data": serializer.data,
+            }, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+
+class ShowProducerPostsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            # Ensure the user is a consumer
+            if request.user.userRole != 'consumer':
+                return Response(
+                    {"message": "Only consumers can view producer posts."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            # Get all accepted friend requests for the consumer
+            accepted_requests = FriendRequest.objects.filter(
+                from_user=request.user,
+                status='accepted'
+            )
+
+            # Extract the producers from the accepted friend requests
+            producers = [req.to_user for req in accepted_requests]
+
+            # Get posts made by these producers
+            posts = Post.objects.filter(user__in=producers)
+
+            # Serialize the posts
+            posts_data = [{
+                'id': post.id,
+                'title': post.title,
+                'price': post.price,
+                'kilowatts': post.kilowatts,
+                'start_time': post.start_time,
+                'end_time': post.end_time,
+                'created_at': post.created_at,
+                'producer': post.user.username
+            } for post in posts]
+
+            return Response(posts_data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            print(f"An error occurred while showing posts: {str(e)}")
             return Response(
                 {"message": "An unexpected error occurred."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

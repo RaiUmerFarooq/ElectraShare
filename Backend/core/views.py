@@ -67,7 +67,7 @@ class VerifyEmailView(APIView):
             print(f'User found: {user}')
             
             # Verify the token
-            payload = jwt.decode(token, 'your-secret-key', algorithms=['HS256'])
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
             print(f'Decoded JWT payload: {payload}')
             
             # Convert payload ID to bigint for comparison
@@ -90,7 +90,7 @@ class VerifyEmailView(APIView):
             return Response({"message": "Invalid verification link."}, status=status.HTTP_400_BAD_REQUEST)
         except ValueError:
             print("Invalid user ID during verification.")
-            return Response({"message": "Invalid user ID."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": "Invalid user ID."}, status=status.HTTP_404_BAD_REQUEST)
         except Exception as e:
             print(f"An unexpected error occurred during email verification: {str(e)}")
             return Response({"message": "An unexpected error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

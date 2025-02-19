@@ -3,19 +3,25 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.conf import settings
 # Custom user manager
 class UserManager(BaseUserManager):
-    def create_user(self, username, email, password=None):
+    def create_user(self, username, email, password=None, contactNo=None, userRole='consumer'):
         if not email:
             raise ValueError("Users must have an email address")
         if not username:
             raise ValueError("Users must have a username")
+        if userRole not in ['consumer', 'producer']:
+            raise ValueError("userRole must be either 'consumer' or 'producer'")
         
         user = self.model(
             username=username,
             email=self.normalize_email(email),
+            contactNo=contactNo,
+            userRole=userRole
         )
         user.set_password(password)  # Hash the password
         user.save(using=self._db)
         return user
+
+
 
     def create_superuser(self, username, email, password=None):
         user = self.create_user(username, email, password)
@@ -28,7 +34,8 @@ class User(AbstractBaseUser):
     username = models.CharField(max_length=50, unique=True)
     email = models.EmailField(unique=True)
     contactNo = models.CharField(max_length=11, null=True)
-    userRole = models.TextField(default="", max_length=8)
+    userRole = models.CharField(max_length=8, choices=[('consumer', 'Consumer'), ('producer', 'Producer')], default='consumer')
+
     password = models.CharField(max_length=128)
     image = models.ImageField(upload_to='profile_images/', blank=True, null=True)  # New field for profile image
     is_active = models.BooleanField(default=False)  # inherited from AbstractBaseUser

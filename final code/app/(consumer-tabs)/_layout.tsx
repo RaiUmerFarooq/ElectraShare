@@ -21,7 +21,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="ViewPost/index"
+        name="ViewPost/Index"
         options={{
           title: 'Post',
           tabBarIcon: ({ color }) => <MaterialIcons size={28} name="compost" color={color} />,

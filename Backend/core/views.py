@@ -390,3 +390,40 @@ class ShowProducerPostsView(APIView):
                 {"message": "An unexpected error occurred."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+class ListAcceptedProducersView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            # Ensure the user is a consumer
+            if request.user.userRole != 'consumer':
+                return Response(
+                    {"message": "Only consumers can view accepted producers."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            # Get all accepted friend requests for the consumer
+            accepted_requests = FriendRequest.objects.filter(
+                from_user=request.user,
+                status='accepted'
+            )
+
+            # Extract the producers from the accepted friend requests
+            producers = [req.to_user for req in accepted_requests]
+
+            # Prepare the response data for accepted producers
+            producers_data = [{
+                'id': producer.id,
+                'username': producer.username,
+                'email': producer.email,
+                'description': getattr(producer, "description", "No description provided."),
+            } for producer in producers]
+
+            return Response(producers_data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            print(f"An error occurred while listing accepted producers: {str(e)}")
+            return Response(
+                {"message": "An unexpected error occurred."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

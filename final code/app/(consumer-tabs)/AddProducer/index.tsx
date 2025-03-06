@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TextInput,
-  StyleSheet,
   TouchableOpacity,
-  Alert,
   ImageBackground,
   ScrollView,
   ActivityIndicator,
+  StyleSheet,
   Animated,
   Easing,
+  Alert,
 } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearchengin } from '@fortawesome/free-brands-svg-icons';
@@ -32,10 +32,39 @@ const AddProducer = () => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [requestStatus, setRequestStatus] = useState<RequestStatus>('idle');
+  const [acceptedProducers, setAcceptedProducers] = useState<Producer[]>([]); // State for accepted producers
+  const [acceptedLoading, setAcceptedLoading] = useState(false); // Loading state for accepted producers
+  const [acceptedError, setAcceptedError] = useState<string>(''); // Error state for accepted producers
   const fadeAnim = useState(new Animated.Value(0))[0];
 
+  useEffect(() => {
+    const fetchAcceptedProducers = async () => {
+      setAcceptedLoading(true);
+      setAcceptedError('');
+      try {
+        const response = await apiClient.get('/accepted-producers/');
+        const producers: Producer[] = response.data.map((producer: any) => ({
+          id: producer.id.toString(),
+          username: producer.username,
+          description: producer.description || 'No description provided.',
+          status: 'accepted', // Set status to 'accepted' since these are accepted connections
+        }));
+        setAcceptedProducers(producers);
+      } catch (error) {
+        console.error('Error fetching accepted producers:', error);
+        const errorMessage =
+          error.response?.data?.message || 'Failed to fetch accepted producers.';
+        setAcceptedError(errorMessage);
+      } finally {
+        setAcceptedLoading(false);
+      }
+    };
+
+    fetchAcceptedProducers();
+  }, []);
+
   const handleSearch = async () => {
-    if (!username) {
+    if (!username.trim()) {
       Alert.alert('Validation Error', 'Please enter a username');
       return;
     }
@@ -57,17 +86,17 @@ const AddProducer = () => {
       const response = await apiClient.post('/users/find/', { username });
 
       const producer: Producer = {
-        id: response.data.id,
+        id: response.data.id.toString(), // Ensure id is a string for consistency
         username: response.data.username,
         description: response.data.description || 'No description provided.',
-        status: response.data.status || 'not connected', // Set the status field
+        status: response.data.status || 'not connected', // Set the status field from API
       };
 
       setFoundProducer(producer);
     } catch (error) {
       console.error('Error fetching producer:', error);
       const errorMessage =
-        error.response?.data?.message || 'Failed to fetch producer.';
+        error.response?.data?.message || 'Failed to fetch producer. Producer not found or invalid username.';
       setErrorMessage(errorMessage);
     } finally {
       setLoading(false);
@@ -75,6 +104,11 @@ const AddProducer = () => {
   };
 
   const handleSendFriendRequest = async (producerId: string) => {
+    if (!producerId) {
+      Alert.alert('Error', 'Producer ID is missing.');
+      return;
+    }
+
     setRequestStatus('loading');
 
     try {
@@ -83,8 +117,8 @@ const AddProducer = () => {
       });
 
       if (response.status === 201) {
-        // If the status is "not connected," change it to "pending" while the request is being processed
         setRequestStatus('pending');
+        setFoundProducer((prev) => prev ? { ...prev, status: 'pending' } : null);
         Alert.alert('Success', 'Friend request sent successfully.');
       }
     } catch (error) {
@@ -92,14 +126,15 @@ const AddProducer = () => {
       const errorMessage =
         error.response?.data?.message || 'Failed to send friend request.';
       setRequestStatus('rejected');
+      setFoundProducer((prev) => prev ? { ...prev, status: 'rejected' } : null);
       Alert.alert('Error', errorMessage);
     }
   };
 
   const renderFriendRequestButton = () => {
-    if (foundProducer?.status === 'not connected' && requestStatus === 'pending') {
+    if (foundProducer?.status === 'pending') {
       return (
-        <View style={[styles.requestButton, { backgroundColor: '#FF9800' }]}>
+        <View style={styles.requestButtonPending}>
           <Text style={styles.buttonText}>Pending...</Text>
         </View>
       );
@@ -114,25 +149,28 @@ const AddProducer = () => {
         );
       case 'accepted':
         return (
-          <View style={[styles.requestButton, { backgroundColor: '#4CAF50' }]}>
+          <View style={styles.requestButtonAccepted}>
             <Text style={styles.buttonText}>Request Accepted ✓</Text>
           </View>
         );
       case 'rejected':
         return (
-          <View style={[styles.requestButton, { backgroundColor: '#FF0000' }]}>
+          <View style={styles.requestButtonRejected}>
             <Text style={styles.buttonText}>Request Rejected ✗</Text>
           </View>
         );
       default:
-        return (
-          <TouchableOpacity
-            style={styles.requestButton}
-            onPress={() => handleSendFriendRequest(foundProducer!.id)}
-          >
-            <Text style={styles.buttonText}>Send Friend Request</Text>
-          </TouchableOpacity>
-        );
+        if (foundProducer?.status === 'not connected') {
+          return (
+            <TouchableOpacity
+              style={styles.requestButton}
+              onPress={() => handleSendFriendRequest(foundProducer.id)}
+            >
+              <Text style={styles.buttonText}>Send Friend Request</Text>
+            </TouchableOpacity>
+          );
+        }
+        return null; // Hide button if already connected or in an invalid state
     }
   };
 
@@ -150,13 +188,14 @@ const AddProducer = () => {
             placeholder="Enter Producer's Username"
             value={username}
             onChangeText={setUsername}
+            placeholderTextColor="#999"
           />
           <TouchableOpacity
             style={[styles.searchButton, loading && styles.buttonDisabled]}
             onPress={handleSearch}
             disabled={loading}
           >
-            <FontAwesomeIcon icon={faSearchengin} color="#fff" size={40} />
+            <FontAwesomeIcon icon={faSearchengin} color="#fff" size={30} />
           </TouchableOpacity>
         </View>
 
@@ -185,6 +224,30 @@ const AddProducer = () => {
             </View>
           ) : null}
         </Animated.View>
+
+        {/* Section for Accepted Producers */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Accepted Producers</Text>
+        </View>
+        {acceptedLoading ? (
+          <ActivityIndicator size="large" color="#4CAF50" style={styles.loadingIndicator} />
+        ) : acceptedError ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorMessage}>{acceptedError}</Text>
+          </View>
+        ) : (
+          acceptedProducers.map((producer) => (
+            <View key={producer.id} style={styles.card}>
+              <Text style={styles.producerUsername}>{producer.username}</Text>
+              <Text style={styles.producerDescription}>
+                {producer.description}
+              </Text>
+              <Text style={styles.connectionStatus}>
+                Connection Status: {producer.status}
+              </Text>
+            </View>
+          ))
+        )}
       </ScrollView>
     </ImageBackground>
   );
@@ -255,14 +318,17 @@ const styles = StyleSheet.create({
   foundTitle: {
     fontWeight: 'bold',
     fontSize: 20,
+    color: '#333',
   },
   producerUsername: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#333',
   },
   producerDescription: {
     fontSize: 16,
     color: '#555',
+    marginTop: 8,
   },
   connectionStatus: {
     fontSize: 16,
@@ -277,6 +343,53 @@ const styles = StyleSheet.create({
     marginTop: 15,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  requestButtonPending: {
+    backgroundColor: '#FF9800',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    marginTop: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  requestButtonAccepted: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    marginTop: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  requestButtonRejected: {
+    backgroundColor: '#FF0000',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    marginTop: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 5,
+    elevation: 3,
   },
   buttonText: {
     color: '#fff',
@@ -288,10 +401,24 @@ const styles = StyleSheet.create({
     padding: 10,
     backgroundColor: '#f8d7da',
     borderRadius: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 5,
+    elevation: 3,
   },
   errorMessage: {
     color: '#721c24',
     fontSize: 16,
+  },
+  sectionHeader: {
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
   },
 });
 

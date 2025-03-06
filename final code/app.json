@@ -31,6 +31,9 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "STRIPE_PUBLISHABLE_KEY": "pk_test_51PsVavGFxGSFALoaoxetGEh95HNTP8pusS8VzRS2bQ8GDh5Pa3yXhsqXAgZVSoumrIUXwuOFDJ56KLMPwvz3GOTQ00RbxD5gXM"
     }
   }
 }

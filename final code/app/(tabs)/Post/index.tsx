@@ -8,6 +8,7 @@ import {
   Alert, 
   ImageBackground 
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AuthCheck from '@/app/validations/AuthCheck';
@@ -90,61 +91,70 @@ const AddPost = () => {
         source={{ uri: 'https://st2.depositphotos.com/1000356/5730/i/450/depositphotos_57307849-stock-photo-green-leaves-background.jpg' }}
         style={styles.background}
       >
-        <View style={styles.container}>
-          <Text style={styles.title}>Add New Post</Text>
+        <LinearGradient colors={['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.3)']} style={styles.overlay}>
+          <View style={styles.container}>
+            <Text style={styles.title}>Add New Post</Text>
 
-          {/* Post Title */}
-          <Text style={styles.label}>Post Title</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter post title"
-            value={title}
-            onChangeText={setTitle}
-          />
+            {/* Post Title */}
+            <Text style={styles.label}>Post Title</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter post title"
+              placeholderTextColor="#999"
+              value={title}
+              onChangeText={setTitle}
+            />
 
-          {/* Price */}
-          <Text style={styles.label}>Price (Numeric)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter price"
-            value={price}
-            onChangeText={(value) => setPrice(value.replace(/[^0-9]/g, ''))} // Numeric-only input
-            keyboardType="numeric"
-          />
+            {/* Price */}
+            <Text style={styles.label}>Price (Numeric)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter price"
+              placeholderTextColor="#999"
+              value={price}
+              onChangeText={(value) => setPrice(value.replace(/[^0-9]/g, ''))} // Numeric-only input
+              keyboardType="numeric"
+            />
 
-          {/* Kilowatts */}
-          <Text style={styles.label}>Kilowatts Available (Numeric)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter kilowatts available"
-            value={kilowatts}
-            onChangeText={(value) => setKilowatts(value.replace(/[^0-9]/g, ''))} // Numeric-only input
-            keyboardType="numeric"
-          />
+            {/* Kilowatts */}
+            <Text style={styles.label}>Kilowatts Available (Numeric)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter kilowatts available"
+              placeholderTextColor="#999"
+              value={kilowatts}
+              onChangeText={(value) => setKilowatts(value.replace(/[^0-9]/g, ''))} // Numeric-only input
+              keyboardType="numeric"
+            />
 
-          {/* Start Time */}
-          <Text style={styles.label}>Start Time (HH:mm)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter start time"
-            value={startTime}
-            onChangeText={setStartTime}
-          />
+            {/* Start Time */}
+            <Text style={styles.label}>Start Time (HH:mm)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter start time"
+              placeholderTextColor="#999"
+              value={startTime}
+              onChangeText={setStartTime}
+            />
 
-          {/* End Time */}
-          <Text style={styles.label}>End Time (HH:mm)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter end time"
-            value={endTime}
-            onChangeText={setEndTime}
-          />
+            {/* End Time */}
+            <Text style={styles.label}>End Time (HH:mm)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter end time"
+              placeholderTextColor="#999"
+              value={endTime}
+              onChangeText={setEndTime}
+            />
 
-          {/* Submit Button */}
-          <TouchableOpacity style={styles.submitButton} onPress={handlePostSubmit}>
-            <Text style={styles.submitButtonText}>Submit Post</Text>
-          </TouchableOpacity>
-        </View>
+            {/* Submit Button */}
+            <TouchableOpacity style={styles.submitButton} onPress={handlePostSubmit}>
+              <LinearGradient colors={['#11998e', '#38ef7d']} style={styles.buttonGradient}>
+                <Text style={styles.submitButtonText}>Submit Post</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
       </ImageBackground>
     </AuthCheck>
   );
@@ -156,34 +166,53 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
     justifyContent: 'center',
   },
-  container: {
+  overlay: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  container: {
+    width: '100%',
+    maxWidth: 400,
     padding: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderRadius: 10,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    backdropFilter: 'blur(10px)',
+    elevation: 5,
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
-    marginBottom: 20,
+    color: '#fff',
     textAlign: 'center',
+    marginBottom: 20,
   },
   label: {
     fontSize: 16,
+    color: '#fff',
     marginBottom: 5,
   },
   input: {
-    backgroundColor: '#F2F2F2',
-    padding: 12,
-    borderRadius: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    padding: 14,
+    borderRadius: 8,
     marginBottom: 15,
+    fontSize: 16,
+    color: '#fff',
   },
   submitButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 15,
-    borderRadius: 8,
-    alignItems: 'center',
     marginTop: 20,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  buttonGradient: {
+    paddingVertical: 15,
+    alignItems: 'center',
   },
   submitButtonText: {
     color: '#FFF',

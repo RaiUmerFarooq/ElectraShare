@@ -23,6 +23,8 @@
     "@react-native-community/masked-view": "^0.1.11",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/stack": "^6.4.1",
+    "@stripe/react-stripe-js": "^3.4.0",
+    "@stripe/stripe-js": "^6.0.0",
     "@stripe/stripe-react-native": "0.38.6",
     "axios": "^1.7.7",
     "expo": "^52.0.7",

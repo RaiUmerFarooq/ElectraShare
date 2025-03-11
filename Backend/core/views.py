@@ -15,7 +15,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from django.contrib.auth import get_user_model
 from datetime import time
-
+from payments.models import StripePayment  # Import the StripePayment model
 
 User = get_user_model()
 
@@ -48,40 +48,26 @@ class LoginView(TokenObtainPairView):
             return Response({
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
-                'status':user.userRole,
+                'status': user.userRole,
             }, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class VerifyEmailView(APIView):
     def get(self, request, uidb64, token):
         try:
-            # Decode the user ID from the base64 URL-safe string
             uid = force_str(urlsafe_base64_decode(uidb64))
             print(f'Decoded UID: {uid}')
-            
-            # Convert the UID to a bigint/int64
-            
-            
-            # Fetch the user or return a 404 error
             user = get_object_or_404(User, id=uid)
             print(f'User found: {user}')
-            
-            # Verify the token
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
             print(f'Decoded JWT payload: {payload}')
-            
-            # Convert payload ID to bigint for comparison
             if int(payload['id']) != user.id:
                 print("Token user ID does not match the database user ID.")
                 return Response({"message": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
-
-            # Activate the user account
             user.is_active = True
             user.save()
             print(f'User {user.username} activated successfully.')
-
             return Response({"message": "Email verified successfully. You can now log in."}, status=status.HTTP_200_OK)
-
         except jwt.ExpiredSignatureError:
             print("Verification link has expired.")
             return Response({"message": "Verification link has expired."}, status=status.HTTP_400_BAD_REQUEST)
@@ -94,20 +80,19 @@ class VerifyEmailView(APIView):
         except Exception as e:
             print(f"An unexpected error occurred during email verification: {str(e)}")
             return Response({"message": "An unexpected error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
-
         user_data = {
             'username': user.username,
             'email': user.email,
-            'status':user.userRole,
+            'status': user.userRole,
         }
-
         return Response(user_data, status=status.HTTP_200_OK)
-    
+
 class AddPost(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -157,6 +142,7 @@ class AddPost(APIView):
                 {"message": "An unexpected error occurred."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
 class FindProducerView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -170,7 +156,6 @@ class FindProducerView(APIView):
             )
 
         try:
-            # Find the producer
             user = User.objects.filter(userRole='producer', username=search_query).first()
             if not user:
                 return Response(
@@ -178,26 +163,23 @@ class FindProducerView(APIView):
                     status=status.HTTP_404_NOT_FOUND
                 )
 
-            # Check the connection status from the Request model
             connection_status = "not connected"
             user_request = FriendRequest.objects.filter(
-                (Q(from_user=user) | Q(to_user=user)),  # Querying if the user is involved as either from_user or to_user
+                (Q(from_user=user) | Q(to_user=user)),
                 (Q(status="pending") | Q(status="accepted") | Q(status="rejected"))
             ).first()
 
             if user_request:
                 connection_status = user_request.status
             else:
-                # If no matching request found, status remains "not connected"
                 connection_status = "not connected"
 
-            # Prepare the response data including the connection status
             producer_data = {
                 "id": user.id,
                 "username": user.username,
                 "email": user.email,
                 "description": getattr(user, "description", "No description provided."),
-                "status": connection_status  # Include the status in the response
+                "status": connection_status
             }
 
             return Response(producer_data, status=status.HTTP_200_OK)
@@ -216,17 +198,14 @@ class SendFriendRequestView(APIView):
         producer_id = request.data.get('producer_id')
         
         try:
-            # Check if the requesting user is a consumer
             if request.user.userRole != 'consumer':
                 return Response(
                     {"message": "Only consumers can send friend requests."},
                     status=status.HTTP_403_FORBIDDEN
                 )
 
-            # Get the producer
             producer = get_object_or_404(User, id=producer_id, userRole='producer')
             
-            # Check if request already exists
             existing_request = FriendRequest.objects.filter(
                 from_user=request.user,
                 to_user=producer
@@ -238,7 +217,6 @@ class SendFriendRequestView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Create friend request
             FriendRequest.objects.create(
                 from_user=request.user,
                 to_user=producer
@@ -262,14 +240,12 @@ class ManageFriendRequestView(APIView):
         action = request.data.get('action')
         
         try:
-            # Verify the user is a producer
             if request.user.userRole != 'producer':
                 return Response(
                     {"message": "Only producers can manage friend requests."},
                     status=status.HTTP_403_FORBIDDEN
                 )
 
-            # Get the friend request
             friend_request = get_object_or_404(
                 FriendRequest,
                 id=request_id,
@@ -304,15 +280,9 @@ class ListFriendRequestsView(APIView):
     def get(self, request):
         try:
             if request.user.userRole == 'producer':
-                # For producers: show received pending requests
-                requests = FriendRequest.objects.filter(
-                    to_user=request.user
-                )
+                requests = FriendRequest.objects.filter(to_user=request.user)
             else:
-                # For consumers: show sent requests
-                requests = FriendRequest.objects.filter(
-                    from_user=request.user
-                )
+                requests = FriendRequest.objects.filter(from_user=request.user)
 
             requests_data = [{
                 'id': req.id,
@@ -331,10 +301,10 @@ class ListFriendRequestsView(APIView):
             )
 
 class EditProfileView(APIView):
-    permission_classes = [IsAuthenticated]  # Ensure only authenticated users can access this
+    permission_classes = [IsAuthenticated]
 
     def put(self, request):
-        user = request.user  # Get the currently authenticated user
+        user = request.user
         serializer = ProfileEditSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
@@ -343,8 +313,6 @@ class EditProfileView(APIView):
                 "data": serializer.data,
             }, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-
 
 class ShowProducerPostsView(APIView):
     permission_classes = [IsAuthenticated]
@@ -367,8 +335,12 @@ class ShowProducerPostsView(APIView):
             # Extract the producers from the accepted friend requests
             producers = [req.to_user for req in accepted_requests]
 
-            # Get posts made by these producers
-            posts = Post.objects.filter(user__in=producers)
+            # Get posts made by these producers that have no corresponding StripePayment
+            posts = Post.objects.filter(
+                user__in=producers
+            ).exclude(
+                id__in=StripePayment.objects.values_list('post_id', flat=True)
+            )
 
             # Serialize the posts
             posts_data = [{
@@ -390,28 +362,25 @@ class ShowProducerPostsView(APIView):
                 {"message": "An unexpected error occurred."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
 class ListAcceptedProducersView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         try:
-            # Ensure the user is a consumer
             if request.user.userRole != 'consumer':
                 return Response(
                     {"message": "Only consumers can view accepted producers."},
                     status=status.HTTP_403_FORBIDDEN
                 )
 
-            # Get all accepted friend requests for the consumer
             accepted_requests = FriendRequest.objects.filter(
                 from_user=request.user,
                 status='accepted'
             )
 
-            # Extract the producers from the accepted friend requests
             producers = [req.to_user for req in accepted_requests]
 
-            # Prepare the response data for accepted producers
             producers_data = [{
                 'id': producer.id,
                 'username': producer.username,

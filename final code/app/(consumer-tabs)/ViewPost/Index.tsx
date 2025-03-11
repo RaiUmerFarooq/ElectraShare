@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -7,8 +7,7 @@ import {
   ImageBackground, 
   ScrollView, 
   ActivityIndicator, 
-  Alert, 
-  TextInput 
+  Alert 
 } from 'react-native';
 import { 
   Button, 
@@ -17,13 +16,71 @@ import {
   Title, 
   Paragraph 
 } from 'react-native-paper';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Checkout from '@/components/checkout';
 import TransactionHistory from '@/components/TransactionHistory';
 import ConCheck from '@/app/validations/conCheck';
 import apiClient from '@/app/api-component/apiClient';
+import { loadStripe } from '@stripe/stripe-js'; // Import Stripe.js
+import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js'; // Import hooks and CardElement from Stripe
 
 const { width } = Dimensions.get('window');
+
+// Separate PaymentForm component to isolate state and focus logic
+const PaymentForm = React.memo(({ onSubmit, onCancel, paymentLoading }) => {
+  console.log('PaymentForm rendered'); // Debug re-renders
+  const stripe = useStripe();
+  const elements = useElements();
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (!stripe || !elements) {
+      return;
+    }
+    await onSubmit(stripe, elements);
+  };
+
+  return (
+    <Surface style={styles.paymentCard} elevation={4}>
+      <Title style={styles.paymentTitle}>Enter Card Details</Title>
+      <View style={styles.paymentForm}>
+        <Text style={styles.label}>Card Number</Text>
+        <CardElement
+          style={{
+            base: {
+              fontSize: '16px',
+              color: '#424770',
+              letterSpacing: '0.025em',
+              padding: '10px',
+              backgroundColor: '#F5F5F5',
+              borderRadius: '10px',
+              borderWidth: '1px',
+              borderColor: '#D4D4D4',
+            },
+          }}
+        />
+        <View style={styles.paymentActions}>
+          <Button
+            mode="contained"
+            onPress={handleSubmit}
+            loading={paymentLoading}
+            disabled={paymentLoading}
+            style={styles.payButton}
+          >
+            {paymentLoading ? 'Processing...' : 'Confirm Payment'}
+          </Button>
+          <Button
+            mode="outlined"
+            onPress={onCancel}
+            color="#F44336"
+            style={styles.cancelButton}
+          >
+            Cancel
+          </Button>
+        </View>
+      </View>
+    </Surface>
+  );
+});
 
 const ViewPost = () => {
   const [posts, setPosts] = useState([]);
@@ -34,11 +91,16 @@ const ViewPost = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
-  const [cardDetails, setCardDetails] = useState({
-    number: '',
-    expiry: '',
-    cvc: '',
-  });
+  const [stripePromise, setStripePromise] = useState(null); // Store Stripe instance
+
+  // Initialize Stripe with your publishable key
+  useEffect(() => {
+    const initializeStripe = async () => {
+      const stripe = await loadStripe('pk_test_51PsVavGFxGSFALoaoxetGEh95HNTP8pusS8VzRS2bQ8GDh5Pa3yXhsqXAgZVSoumrIUXwuOFDJ56KLMPwvz3GOTQ00RbxD5gXM'); // Replace with your publishable key
+      setStripePromise(stripe);
+    };
+    initializeStripe();
+  }, []);
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -65,65 +127,65 @@ const ViewPost = () => {
     setAvailablePosts((prev) => prev.filter((p) => p.id !== post.id));
   };
 
-  const validateCardDetails = () => {
-    const { number, expiry, cvc } = cardDetails;
-    if (!number || !expiry || !cvc) {
-      Alert.alert('Validation Error', 'Please fill in all card details.');
-      return false;
-    }
-    if (number.length < 16 || !/^\d+$/.test(number)) {
-      Alert.alert('Validation Error', 'Please enter a valid 16-digit card number.');
-      return false;
-    }
-    if (!/^\d{2}\/\d{2}$/.test(expiry)) {
-      Alert.alert('Validation Error', 'Please enter expiry in MM/YY format (e.g., 12/25).');
-      return false;
-    }
-    if (cvc.length < 3 || !/^\d+$/.test(cvc)) {
-      Alert.alert('Validation Error', 'Please enter a valid 3-4 digit CVC.');
-      return false;
-    }
-    return true;
-  };
+  const handleStripePayment = async (stripe, elements) => {
+    console.log('handleStripePayment triggered');
 
-  const handleStripePayment = async () => {
-    if (!validateCardDetails()) return;
+    if (!stripe || !elements) {
+      Alert.alert('Error', 'Stripe is not initialized. Please try again.');
+      return;
+    }
 
     setPaymentLoading(true);
-    try {
-      const cardData = {
-        number: cardDetails.number.replace(/\s/g, ''),
-        exp_month: parseInt(cardDetails.expiry.split('/')[0], 10),
-        exp_year: parseInt(cardDetails.expiry.split('/')[1], 10) + 2000,
-        cvc: cardDetails.cvc,
-      };
+    console.log('Payment loading set to true');
 
+    try {
+      const card = elements.getElement(CardElement);
+
+      const { error, paymentMethod } = await stripe.createPaymentMethod({
+        type: 'card',
+        card: card,
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      console.log('Payment Method Created:', paymentMethod);
+
+      // Send payment method ID to backend to confirm Payment Intent
       const response = await apiClient.post('/payments/stripe/payment/', {
         amount: selectedPost.post.price,
         post_id: selectedPost.post.id,
+        payment_method_id: paymentMethod.id,
       });
+
+      console.log('API Response:', response.data);
 
       if (!response.data.client_secret) {
         throw new Error('Payment intent creation failed');
       }
 
-      // Simulate real payment flow by checking card details (mock for now)
-      if (cardData.number === '4242424242424242') { // Test card for Stripe
-        // Here, we’d normally confirm the payment with Stripe, but we’ll simulate success
-        if (response.data.status === 'pending') {
-          handleCheckoutComplete(selectedPost.post);
-          Alert.alert('Success', 'Payment completed successfully for this post.');
-        } else {
-          throw new Error('Payment failed. Status: ' + response.data.status);
-        }
+      // Confirm the Payment Intent (optional, depending on backend logic)
+      const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(
+        response.data.client_secret
+      );
+
+      if (confirmError) {
+        throw new Error(confirmError.message);
+      }
+
+      if (paymentIntent.status === 'succeeded') {
+        handleCheckoutComplete(selectedPost.post);
+        Alert.alert('Success', 'Payment completed successfully for this post.');
       } else {
-        throw new Error('Invalid card details for testing. Use test card 4242 4242 4242 4242.');
+        throw new Error(`Payment failed. Status: ${paymentIntent.status}`);
       }
     } catch (error) {
       console.error('Payment error:', error);
       Alert.alert('Error', error.message || 'Payment failed. Please try again.');
     } finally {
       setPaymentLoading(false);
+      console.log('Payment loading set to false');
     }
   };
 
@@ -146,20 +208,12 @@ const ViewPost = () => {
     setSelectedPost(null);
   };
 
-  const handleCardChange = (field, value) => {
-    setCardDetails((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
   const PostCard = ({ post, onAccept, onReject }) => (
     <Surface style={styles.postCard} elevation={4}>
       <View style={styles.postHeader}>
         <Title style={styles.postTitle}>{post.title}</Title>
         <Paragraph style={styles.producerText}>By: {post.producer}</Paragraph>
       </View>
-
       <View style={styles.postContent}>
         <View style={styles.postDetails}>
           <Paragraph style={styles.detailText}>
@@ -180,7 +234,6 @@ const ViewPost = () => {
           </Paragraph>
         </View>
       </View>
-
       <View style={styles.postActions}>
         <Button
           mode="contained"
@@ -197,58 +250,6 @@ const ViewPost = () => {
         >
           Reject
         </Button>
-      </View>
-    </Surface>
-  );
-
-  const PaymentForm = ({ onSubmit, onCancel }) => (
-    <Surface style={styles.paymentCard} elevation={4}>
-      <Title style={styles.paymentTitle}>Enter Card Details</Title>
-      <View style={styles.paymentForm}>
-        <Text style={styles.label}>Card Number</Text>
-        <TextInput
-          style={styles.input}
-          value={cardDetails.number}
-          onChangeText={(value) => handleCardChange('number', value)}
-          keyboardType="numeric"
-          placeholder="1234 5678 9012 3456"
-          maxLength={19}
-        />
-        <Text style={styles.label}>Expiry Date (MM/YY)</Text>
-        <TextInput
-          style={styles.input}
-          value={cardDetails.expiry}
-          onChangeText={(value) => handleCardChange('expiry', value)}
-          placeholder="12/25"
-          maxLength={5}
-        />
-        <Text style={styles.label}>CVC</Text>
-        <TextInput
-          style={styles.input}
-          value={cardDetails.cvc}
-          onChangeText={(value) => handleCardChange('cvc', value)}
-          keyboardType="numeric"
-          placeholder="123"
-          maxLength={4}
-        />
-        <View style={styles.paymentActions}>
-          <Button
-            mode="contained"
-            onPress={onSubmit}
-            loading={paymentLoading}
-            style={styles.payButton}
-          >
-            {paymentLoading ? 'Processing...' : 'Confirm Payment'}
-          </Button>
-          <Button
-            mode="outlined"
-            onPress={onCancel}
-            color="#F44336"
-            style={styles.cancelButton}
-          >
-            Cancel
-          </Button>
-        </View>
       </View>
     </Surface>
   );
@@ -277,23 +278,24 @@ const ViewPost = () => {
         blurRadius={8}
       >
         <ScrollView contentContainerStyle={styles.container}>
-          {selectedPost ? (
-            selectedPost.mode === 'payment' ? (
+          {selectedPost && selectedPost.mode === 'payment' ? (
+            <Elements stripe={stripePromise}>
               <PaymentForm
                 onSubmit={handleStripePayment}
-                onCancel={() => setSelectedPost(null)}
+                onCancel={handleBack}
+                paymentLoading={paymentLoading}
               />
-            ) : (
-              <Checkout
-                post={selectedPost.post}
-                onCheckoutComplete={handleCheckoutComplete}
-                onBack={handleBack}
-              />
-            )
+            </Elements>
           ) : transactionDetails ? (
             <TransactionHistory
               transaction={transactionDetails}
               onBack={() => setTransactionDetails(null)}
+            />
+          ) : selectedPost ? (
+            <Checkout
+              post={selectedPost.post}
+              onCheckoutComplete={handleCheckoutComplete}
+              onBack={handleBack}
             />
           ) : (
             <>
@@ -303,7 +305,6 @@ const ViewPost = () => {
                   {availablePosts.length} Posts Available
                 </Chip>
               </View>
-
               {availablePosts.map((post) => (
                 <PostCard
                   key={post.id}
@@ -312,21 +313,23 @@ const ViewPost = () => {
                   onReject={handleRejectPost}
                 />
               ))}
-
-              {rejectedPosts.length > 0 && (
-                <>
-                  <View style={styles.sectionHeader}>
-                    <Title style={styles.sectionTitle}>Rejected Posts</Title>
-                  </View>
-                  {rejectedPosts.map((post) => (
-                    <PostCard
-                      key={post.id}
-                      post={post}
-                      onAccept={handleAcceptPost}
-                      onReject={() => {}}
-                    />
-                  ))}
-                </>
+              <View style={styles.sectionHeader}>
+                <Title style={styles.sectionTitle}>Rejected Posts</Title>
+                <Chip icon="cancel" style={styles.chip}>
+                  {rejectedPosts.length} Posts Rejected
+                </Chip>
+              </View>
+              {rejectedPosts.length > 0 ? (
+                rejectedPosts.map((post) => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    onAccept={handleAcceptPost}
+                    onReject={handleRejectPost}
+                  />
+                ))
+              ) : (
+                <Text>No rejected posts.</Text>
               )}
             </>
           )}
@@ -339,180 +342,106 @@ const ViewPost = () => {
 const styles = StyleSheet.create({
   background: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    justifyContent: 'center',
+    paddingTop: 40,
   },
   container: {
+    flexGrow: 1,
     padding: 20,
-    paddingBottom: 40,
+    justifyContent: 'flex-start',
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingVertical: 10,
+  paymentCard: {
+    padding: 20,
+    marginVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#ffffff',
   },
-  sectionTitle: {
-    fontSize: 26,
+  paymentTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#2E7D32', // Dark green for solar theme
-    textShadowColor: 'rgba(0, 0, 0, 0.1)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 4,
+    marginBottom: 15,
   },
-  chip: {
-    backgroundColor: '#BBDEFB',
-    borderRadius: 20,
+  paymentForm: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    color: '#333333',
+  },
+  paymentActions: {
+    marginTop: 20,
+  },
+  payButton: {
+    marginVertical: 10,
+  },
+  cancelButton: {
+    marginVertical: 10,
   },
   postCard: {
     marginBottom: 20,
-    borderRadius: 15,
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 6, // Android shadow
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+    padding: 15,
+    borderRadius: 10,
+    backgroundColor: '#ffffff',
   },
   postHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 15,
   },
   postTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#388E3C', // Medium green for titles
   },
   producerText: {
-    fontSize: 16,
-    color: '#555',
+    fontSize: 14,
+    color: '#757575',
   },
   postContent: {
     marginBottom: 15,
   },
   postDetails: {
-    marginBottom: 10,
+    padding: 10,
+  },
+  detailText: {
+    fontSize: 14,
+    color: '#555555',
+    marginBottom: 5,
   },
   detailLabel: {
     fontWeight: 'bold',
-    color: '#388E3C',
-  },
-  detailText: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 8,
   },
   postActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
   },
   acceptButton: {
-    flex: 0.7,
-    backgroundColor: '#4CAF50', // Vibrant green for payment
-    borderRadius: 12,
-    paddingVertical: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 6,
+    width: '48%',
   },
   rejectButton: {
-    flex: 0.3,
-    borderWidth: 2,
-    borderColor: '#F44336', // Red for rejection
-    borderRadius: 12,
-    paddingVertical: 10,
+    width: '48%',
+  },
+  sectionHeader: {
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  chip: {
+    marginVertical: 10,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
   },
   errorText: {
+    color: 'red',
     fontSize: 18,
-    color: '#D32F2F', // Red for errors
-    textAlign: 'center',
-    padding: 20,
-  },
-  paymentCard: {
-    marginBottom: 20,
-    borderRadius: 15,
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 6, // Android shadow
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  paymentTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2E7D32',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  paymentForm: {
-    marginBottom: 15,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#388E3C',
-    marginBottom: 5,
-  },
-  input: {
-    backgroundColor: '#F5F5F5',
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 15,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#D4D4D4',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  paymentActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  payButton: {
-    flex: 0.7,
-    backgroundColor: '#4CAF50',
-    borderRadius: 12,
-    paddingVertical: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 6,
-  },
-  cancelButton: {
-    flex: 0.3,
-    borderWidth: 2,
-    borderColor: '#F44336',
-    borderRadius: 12,
-    paddingVertical: 10,
   },
 });
 

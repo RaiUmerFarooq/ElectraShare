@@ -7,6 +7,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('core.urls', namespace='core')),
     path('api/payments/', include('payments.urls', namespace='payments')),
+    path('api/weather/', include('weather.urls', namespace='weather')),
 ]
 
 # if settings.DEBUG:

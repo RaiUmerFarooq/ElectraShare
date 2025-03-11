@@ -9,7 +9,7 @@ SECRET_KEY = config('DJANGO_SECRET_KEY', default='django-insecure-_1rtxpri(@l+^z
 
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default=['*'], cast=lambda v: [s.strip() for s in v.split(',')])
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*', cast=lambda v: [s.strip() for s in v.split(',')])
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'core',
     'payments',
+    'weather',
     'rest_framework',
     'rest_framework.authtoken',
     'rest_auth',
@@ -119,8 +120,8 @@ LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
-
-CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default=['http://localhost:8081'], cast=lambda v: [s.strip() for s in v.split(',')])
+WEATHER_API_KEY = config('WEATHER_API_KEY', default='5MUZU3NHYW45N9ACWN46YKYGP')
+CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:8081', cast=lambda v: [s.strip() for s in v.split(',')])
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 
@@ -130,3 +131,38 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Celery Configuration
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+
+# List of cities for weather API
+WEATHER_CITIES = [
+    'Lahore',
+    'Karachi',
+    'Islamabad',
+    'New York',
+    'London',
+    'Tokyo',
+    'Sydney',
+    'Paris',
+    'Dubai',
+    'Toronto',
+    'Mumbai',
+    'Beijing',
+    'Cape Town',
+    'Sao Paulo',
+    'Moscow',
+]
+
+# Celery Beat Schedule
+CELERY_BEAT_SCHEDULE = {
+    'fetch-weather-every-hour': {
+        'task': 'weather.tasks.fetch_weather_for_all_cities',
+        'schedule': 3600.0,  # Run every hour (3600 seconds)
+    },
+}

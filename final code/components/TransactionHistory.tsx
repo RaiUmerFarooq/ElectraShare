@@ -58,7 +58,7 @@ const TransactionHistoryScreen: React.FC<Props> = ({ transaction, onBack }) => {
            
           <View style={styles.detailRow}>  
            <Text style={styles.detailLabel}>Amount:</Text>  
-           <Text style={styles.detailValue}>${transaction.amount}</Text>  
+           <Text style={styles.detailValue}>Rs{transaction.amount}</Text>  
           </View>  
            
           <View style={styles.detailRow}>  

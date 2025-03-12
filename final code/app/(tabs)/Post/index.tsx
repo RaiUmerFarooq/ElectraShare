@@ -5,8 +5,9 @@ import {
   TextInput, 
   TouchableOpacity, 
   StyleSheet, 
-  Alert, 
-  ImageBackground 
+  ImageBackground,
+  Animated,
+  ActivityIndicator
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -20,12 +21,16 @@ const AddPost = () => {
   const [kilowatts, setKilowatts] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState(null);
+  const [messageType, setMessageType] = useState(null);
+  const [scaleAnim] = useState(new Animated.Value(0));
 
   const navigation = useNavigation();
 
   const handlePostSubmit = async () => {
     if (!title.trim() || !price || !kilowatts || !startTime.trim() || !endTime.trim()) {
-      Alert.alert('Validation Error', 'Please fill in all fields');
+      showMessage('Please fill in all fields', 'error');
       return;
     }
 
@@ -33,15 +38,16 @@ const AddPost = () => {
     const numericKilowatts = Number(kilowatts);
 
     if (isNaN(numericPrice) || numericPrice <= 0) {
-      Alert.alert('Validation Error', 'Please enter a valid price');
+      showMessage('Please enter a valid price', 'error');
       return;
     }
 
     if (isNaN(numericKilowatts) || numericKilowatts <= 0) {
-      Alert.alert('Validation Error', 'Please enter valid kilowatts');
+      showMessage('Please enter valid kilowatts', 'error');
       return;
     }
 
+    setIsLoading(true);
     try {
       const postData = {
         title: title.trim(),
@@ -54,19 +60,42 @@ const AddPost = () => {
       const response = await apiClient.post('/post/', postData);
 
       if (response.status === 201) {
-        Alert.alert('Success', 'Post created successfully');
+        showMessage('Post created successfully', 'success');
         setTitle('');
         setPrice('');
         setKilowatts('');
         setStartTime('');
         setEndTime('');
       } else {
-        Alert.alert('Error', 'Failed to create the post');
+        showMessage('Failed to create the post', 'error');
       }
     } catch (error) {
       console.error('Submission error:', error);
-      Alert.alert('Error', 'An unexpected error occurred while creating the post');
+      showMessage('An unexpected error occurred', 'error');
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const showMessage = (text, type) => {
+    setMessage(text);
+    setMessageType(type);
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      friction: 8,
+      tension: 40,
+      useNativeDriver: true,
+    }).start(() => {
+      setTimeout(() => {
+        Animated.spring(scaleAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+        }).start(() => {
+          setMessage(null);
+          setMessageType(null);
+        });
+      }, 3000);
+    });
   };
 
   useEffect(() => {
@@ -112,7 +141,7 @@ const AddPost = () => {
               placeholder="Enter price"
               placeholderTextColor="#999"
               value={price}
-              onChangeText={(value) => setPrice(value.replace(/[^0-9]/g, ''))} // Numeric-only input
+              onChangeText={(value) => setPrice(value.replace(/[^0-9]/g, ''))}
               keyboardType="numeric"
             />
 
@@ -123,7 +152,7 @@ const AddPost = () => {
               placeholder="Enter kilowatts available"
               placeholderTextColor="#999"
               value={kilowatts}
-              onChangeText={(value) => setKilowatts(value.replace(/[^0-9]/g, ''))} // Numeric-only input
+              onChangeText={(value) => setKilowatts(value.replace(/[^0-9]/g, ''))}
               keyboardType="numeric"
             />
 
@@ -148,12 +177,56 @@ const AddPost = () => {
             />
 
             {/* Submit Button */}
-            <TouchableOpacity style={styles.submitButton} onPress={handlePostSubmit}>
-              <LinearGradient colors={['#11998e', '#38ef7d']} style={styles.buttonGradient}>
-                <Text style={styles.submitButtonText}>Submit Post</Text>
+            <TouchableOpacity 
+              style={styles.submitButton} 
+              onPress={handlePostSubmit}
+              disabled={isLoading}
+            >
+              <LinearGradient 
+                colors={['#11998e', '#38ef7d']} 
+                style={styles.buttonGradient}
+              >
+                {isLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.submitButtonText}>Submit Post</Text>
+                )}
               </LinearGradient>
             </TouchableOpacity>
           </View>
+
+          {/* Popup Message */}
+          {message && (
+            <Animated.View 
+              style={[
+                styles.popup,
+                { 
+                  transform: [{ scale: scaleAnim }],
+                  backgroundColor: messageType === 'success' 
+                    ? 'rgba(0, 255, 0, 0.9)' 
+                    : 'rgba(255, 0, 0, 0.9)',
+                }
+              ]}
+            >
+              <Text style={styles.popupText}>
+                {message}
+              </Text>
+              <TouchableOpacity 
+                style={styles.closeButton}
+                onPress={() => {
+                  Animated.spring(scaleAnim, {
+                    toValue: 0,
+                    useNativeDriver: true,
+                  }).start(() => {
+                    setMessage(null);
+                    setMessageType(null);
+                  });
+                }}
+              >
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          )}
         </LinearGradient>
       </ImageBackground>
     </AuthCheck>
@@ -182,7 +255,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.3,
     shadowRadius: 10,
-    backdropFilter: 'blur(10px)',
     elevation: 5,
   },
   title: {
@@ -213,10 +285,41 @@ const styles = StyleSheet.create({
   buttonGradient: {
     paddingVertical: 15,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   submitButtonText: {
     color: '#FFF',
     fontSize: 18,
+    fontWeight: 'bold',
+  },
+  popup: {
+    position: 'absolute',
+    width: '80%',
+    padding: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  popupText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  closeButton: {
+    padding: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 8,
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontSize: 16,
     fontWeight: 'bold',
   },
 });

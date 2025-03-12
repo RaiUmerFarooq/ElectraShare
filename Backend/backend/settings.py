@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     'core',
     'payments',
     'weather',
+    'prediction',
     'rest_framework',
     'rest_framework.authtoken',
     'rest_auth',

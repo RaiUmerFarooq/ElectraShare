@@ -1,26 +1,41 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ImageBackground, Image } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  ImageBackground,
+  Image,
+} from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import apiClient from "@/app/api-component/apiClient";
 
 export default function EditProfile() {
   const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [profileImage, setProfileImage] = useState("");
+  const [email, setEmail] = useState(""); // Re-added email state
+  const [contactNo, setContactNo] = useState("");
+  const [image, setImage] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const navigation = useNavigation();
 
+  // Fetch initial profile data
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const response = await apiClient.get("/users/profile/");
-        const { username, email, profileImage } = response.data;
+        console.log("Profile data:", response.data);
+        const { username, email, contactNo, image } = response.data; // Added email
         setUsername(username || "");
-        setEmail(email || "");
-        setProfileImage(profileImage || "");
+        setEmail(email || ""); // Set email
+        setContactNo(contactNo || "");
+        setImage(image ? `data:image/jpeg;base64,${image}` : "");
       } catch (error) {
         console.error("Error fetching profile:", error);
         Alert.alert("Error", "Failed to fetch profile data.");
@@ -32,16 +47,57 @@ export default function EditProfile() {
     fetchProfile();
   }, []);
 
+  // Request permission and pick image
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission Denied", "Sorry, we need camera roll permissions to make this work!");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+    }
+  };
+
+  // Save profile changes, including image upload
   const handleSave = async () => {
     setSaving(true);
     try {
-      const response = await apiClient.put("/users/profile/", {
-        username,
-        email,
-        profileImage,
+      const formData = new FormData();
+      formData.append("username", username);
+      formData.append("email", email); // Added email to FormData
+      formData.append("contactNo", contactNo);
+
+      if (image && image.startsWith("file://")) {
+        const fileName = image.split("/").pop();
+        const fileType = `image/${fileName.split(".").pop()}`;
+        formData.append("image", {
+          uri: image,
+          name: fileName,
+          type: fileType,
+        } as any);
+      }
+
+      const response = await apiClient.put("/edit-profile/", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
 
+      console.log("Save response:", response.data); // Log response for debugging
+
       if (response.status === 200) {
+        const { image: updatedImage, email: updatedEmail } = response.data.data; // Added email
+        setImage(updatedImage ? `data:image/jpeg;base64,${updatedImage}` : "");
+        setEmail(updatedEmail || email); // Update email state
         Alert.alert("Success", "Profile updated successfully.");
         navigation.goBack();
       }
@@ -75,10 +131,16 @@ export default function EditProfile() {
       </View>
 
       <View style={styles.profileImageContainer}>
-        <Image
-          source={{ uri: profileImage || "https://via.placeholder.com/150" }}
-          style={styles.profileImage}
-        />
+        <TouchableOpacity onPress={pickImage}>
+          <Image
+            source={{ uri: image || "https://placehold.co/150x150" }} // Updated placeholder
+            style={styles.profileImage}
+            onError={(e) => console.log("Image load error:", e.nativeEvent.error)} // Added error logging
+          />
+          <View style={styles.editOverlay}>
+            <Ionicons name="camera" size={24} color="#fff" />
+          </View>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.formContainer}>
@@ -99,12 +161,13 @@ export default function EditProfile() {
           keyboardType="email-address"
         />
 
-        <Text style={styles.label}>Profile Image URL</Text>
+        <Text style={styles.label}>Contact Number</Text>
         <TextInput
           style={styles.input}
-          value={profileImage}
-          onChangeText={setProfileImage}
-          placeholder="Enter profile image URL"
+          value={contactNo}
+          onChangeText={setContactNo}
+          placeholder="Enter contact number"
+          keyboardType="phone-pad"
         />
       </View>
 
@@ -145,6 +208,14 @@ const styles = StyleSheet.create({
     borderRadius: 75,
     borderWidth: 2,
     borderColor: "#ddd",
+  },
+  editOverlay: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    backgroundColor: "rgba(0, 123, 255, 0.7)",
+    borderRadius: 20,
+    padding: 5,
   },
   formContainer: {
     paddingHorizontal: 20,

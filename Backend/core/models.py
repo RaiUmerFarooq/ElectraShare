@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.conf import settings
+
 # Custom user manager
 class UserManager(BaseUserManager):
     def create_user(self, username, email, password=None, contactNo=None, userRole='consumer'):
@@ -21,8 +22,6 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-
-
     def create_superuser(self, username, email, password=None):
         user = self.create_user(username, email, password)
         user.is_active = True
@@ -35,9 +34,8 @@ class User(AbstractBaseUser):
     email = models.EmailField(unique=True)
     contactNo = models.CharField(max_length=11, null=True)
     userRole = models.CharField(max_length=8, choices=[('consumer', 'Consumer'), ('producer', 'Producer')], default='consumer')
-
     password = models.CharField(max_length=128)
-    image = models.ImageField(upload_to='profile_images/', blank=True, null=True)  # New field for profile image
+    image = models.BinaryField(blank=True, null=True)  # Changed to BinaryField for storing image in DB
     is_active = models.BooleanField(default=False)  # inherited from AbstractBaseUser
 
     # Define the unique identifier for authentication

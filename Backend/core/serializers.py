@@ -2,7 +2,8 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model, authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import AuthenticationFailed, NotFound
-import jwt
+import base64
+
 User = get_user_model()
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -15,17 +16,14 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ['username', 'email', 'contactNo', 'userRole', 'password']
 
     def create(self, validated_data):
-
         contact_no = validated_data.pop('contactNo', None)
         user_role = validated_data.pop('userRole', None)
         # Hash the password and create the user
-
         user = User(
             username=validated_data['username'],
             email=validated_data['email'],
             contactNo=contact_no,
             userRole=user_role
-            
         )
         user.set_password(validated_data['password'])
         user.save()
@@ -55,20 +53,30 @@ class LoginSerializer(serializers.Serializer):
 
         return user
 
-
-#, password=data['password']
-
 class ProfileEditSerializer(serializers.ModelSerializer):
-    image = serializers.ImageField(required=False)  # Optional profile image
+    image = serializers.FileField(required=False)  # Changed to FileField to accept binary data from frontend
 
     class Meta:
         model = User
-        fields = ['username', 'contactNo', 'image']  # Fields that can be updated
+        fields = ['username', 'contactNo', 'email', 'image']  # Added 'email' to fields
 
     def update(self, instance, validated_data):
         # Update the instance with the validated data
         instance.username = validated_data.get('username', instance.username)
         instance.contactNo = validated_data.get('contactNo', instance.contactNo)
-        instance.image = validated_data.get('image', instance.image)
+        instance.email = validated_data.get('email', instance.email)  # Added email update
+        # Handle image as binary data
+        if 'image' in validated_data:
+            image_file = validated_data['image']
+            instance.image = image_file.read()  # Read the file content as binary
         instance.save()
         return instance
+
+    def to_representation(self, instance):
+        # Convert binary image to base64 for API response
+        ret = super().to_representation(instance)
+        if instance.image:
+            ret['image'] = base64.b64encode(instance.image).decode('utf-8')
+        else:
+            ret['image'] = None
+        return ret

@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -93,31 +94,54 @@ class AddPost(BaseAPIView):
             return self.handle_exception(e)
 
 class FindProducerView(BaseAPIView):
+   
+
     def post(self, request):
-        search_query = request.data.get("username")
+        search_query = request.data.get('username')
+
         if not search_query:
-            return Response({"message": "Please provide a username to search for a producer."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"message": "Please provide a username to search for a producer."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
-            user = get_user_or_404(userRole="producer", username=search_query)
-            connection_status = FriendRequest.objects.filter(
-                (Q(from_user=user) | Q(to_user=user)),
-                (Q(status="pending") | Q(status="accepted") | Q(status="rejected"))
+            user = get_user_or_404(userRole='producer', username=search_query)
+            if not user:
+                return Response(
+                    {"message": "Producer not found."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            connection_status = "not connected"
+            # Check only requests where the current user is from_user and the searched user is to_user
+            user_request = FriendRequest.objects.filter(
+                from_user=request.user,
+                to_user=user,
+                status__in=["pending", "accepted", "rejected"]
             ).first()
-            status_value = connection_status.status if connection_status else "not connected"
+
+            if user_request:
+                connection_status = user_request.status
+            else:
+                connection_status = "not connected"
 
             producer_data = {
                 "id": user.id,
                 "username": user.username,
                 "email": user.email,
                 "description": getattr(user, "description", "No description provided."),
-                "status": status_value,
+                "status": connection_status
             }
+
             return Response(producer_data, status=status.HTTP_200_OK)
+
         except Exception as e:
-            if "not found" in str(e).lower():
-                return Response({"message": "Producer not found."}, status=status.HTTP_404_NOT_FOUND)
-            return self.handle_exception(e)
+            print(f"An error occurred while finding the producer: {str(e)}")
+            return Response(
+                {"message": "An unexpected error occurred."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class SendFriendRequestView(BaseAPIView):
     def post(self, request):
@@ -142,7 +166,12 @@ class ManageFriendRequestView(BaseAPIView):
             if request.user.userRole != "producer":
                 return Response({"message": "Only producers can manage friend requests."}, status=status.HTTP_403_FORBIDDEN)
 
-            friend_request = get_user_or_404(FriendRequest, id=request_id, to_user=request.user, status="pending")
+            friend_request = get_object_or_404(
+                FriendRequest,
+                id=request_id,
+                to_user=request.user,
+                status='pending'
+            )
             if action not in ["accept", "reject"]:
                 return Response({"message": "Invalid action. Use 'accept' or 'reject'."}, status=status.HTTP_400_BAD_REQUEST)
 

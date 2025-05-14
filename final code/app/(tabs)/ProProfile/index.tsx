@@ -12,13 +12,14 @@ import {
   ImageBackground
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
 import { useNavigation } from "expo-router";
 import { Ionicons, MaterialIcons } from "react-native-vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import apiClient from '@/app/api-component/apiClient'; // Import apiClient
 
 export default function Profile() {
   const [profileData, setProfileData] = useState(null);
+  const [totalProduction, setTotalProduction] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -26,12 +27,7 @@ export default function Profile() {
 
   const fetchProfile = async () => {
     try {
-      const token = await AsyncStorage.getItem("accessToken");
-
-      const response = await axios.get("http://localhost:8000/api/users/profile/", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
+      const response = await apiClient.get("/users/profile/");
       setProfileData(response.data);
       setLoading(false);
     } catch (error) {
@@ -53,13 +49,37 @@ export default function Profile() {
     }
   };
 
+  const fetchTotalProduction = async () => {
+    try {
+      const response = await apiClient.get("solar/get-total-production/");
+      setTotalProduction(response.data.total_production);
+    } catch (error) {
+      console.error("Error fetching total production:", error);
+      // Optionally show an alert if needed
+      setTotalProduction(0); // Fallback to 0 if fetch fails
+    }
+  };
+
   useEffect(() => {
-    fetchProfile();
+    // Initial fetch for profile and total production
+    const initializeData = async () => {
+      await fetchProfile();
+      await fetchTotalProduction();
+    };
+    initializeData();
+
+    // Set up interval to fetch total production every 5 seconds
+    const intervalId = setInterval(() => {
+      fetchTotalProduction();
+    }, 5000);
+
+    // Clean up interval on component unmount
+    return () => clearInterval(intervalId);
   }, []);
 
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
-    fetchProfile().then(() => setRefreshing(false));
+    Promise.all([fetchProfile(), fetchTotalProduction()]).then(() => setRefreshing(false));
   }, []);
 
   const handleLogout = async () => {
@@ -85,15 +105,15 @@ export default function Profile() {
     <View style={styles.statsContainer}>
       <View style={styles.statBox}>
         <Text style={styles.statNumber}>
-          {profileData?.totalProjects || 0}
+          {totalProduction !== null ? totalProduction.toFixed(2) : 'Loading...'}
         </Text>
-        <Text style={styles.statLabel}>Total Production</Text>
+        <Text style={styles.statLabel}>Total Production (kWh)</Text>
       </View>
       <View style={styles.statBox}>
         <Text style={styles.statNumber}>
           {profileData?.reputation || 0}
         </Text>
-        <Text style={styles.statLabel}>Total delivered</Text>
+        <Text style={styles.statLabel}>Total Delivered</Text>
       </View>
     </View>
   );
@@ -170,7 +190,7 @@ export default function Profile() {
 
             <View style={styles.statusBadge}>
               <Text style={styles.statusText}>
-                {profileData?.status === "producer" ? "Producer" : "Consumer"}
+                {profileData?.userRole === "producer" ? "Producer" : "Consumer"}
               </Text>
             </View>
           </View>

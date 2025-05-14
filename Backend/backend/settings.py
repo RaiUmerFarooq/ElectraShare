@@ -24,10 +24,12 @@ INSTALLED_APPS = [
     'payments',
     'weather',
     'prediction',
+    'solar_readings',
     'rest_framework',
     'rest_framework.authtoken',
     'rest_auth',
     'allauth',  # For authentication
+    'sharing',
     'allauth.account',
     'allauth.socialaccount',
 ]
@@ -144,7 +146,7 @@ WEATHER_API_KEY = config('WEATHER_API_KEY', default='5MUZU3NHYW45N9ACWN46YKYGP')
 
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:8081', cast=lambda v: [s.strip() for s in v.split(',')])
-CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
 # Default Auto Field

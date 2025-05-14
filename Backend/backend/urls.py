@@ -9,6 +9,8 @@ urlpatterns = [
     path('api/payments/', include('payments.urls', namespace='payments')),
     path('api/weather/', include('weather.urls', namespace='weather')),
     path('api/prediction/', include('prediction.urls')),
+    path('api/solar/', include('solar_readings.urls')),
+    path('api/', include('sharing.urls')),
 ]
 
 # if settings.DEBUG:

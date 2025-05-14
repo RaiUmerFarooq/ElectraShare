@@ -12,38 +12,42 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LineChart } from 'react-native-chart-kit';
 import { useNavigation } from '@react-navigation/native';
 import AuthCheck from '@/app/validations/AuthCheck';
-import apiClient from '@/app/api-component/apiClient'; // Ensure this path is correct
+import apiClient from '@/app/api-component/apiClient';
 
 // Get the screen width for the chart
 const screenWidth = Dimensions.get('window').width;
 
 const Dashboard = () => {
+  console.log('Dashboard component rendered'); // Add this to confirm rendering
+
   const [refreshing, setRefreshing] = useState(false);
   const [powerData, setPowerData] = useState({
-    labels: ['6am', '9am', '12pm', '3pm', '6pm', '9pm'],
+    labels: [],
     datasets: [
       {
-        data: [20, 45, 78, 80, 43, 10], // Sample data
+        data: [],
       },
     ],
   });
   const [predictionData, setPredictionData] = useState(null);
   const [predictionError, setPredictionError] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [selectedCity, setSelectedCity] = useState('lahore'); // Fixed to lahore
-
+  const [selectedCity, setSelectedCity] = useState('lahore');
+  const [currentPower, setCurrentPower] = useState(0);
+  const [powerTrend, setPowerTrend] = useState('');
   const navigation = useNavigation();
 
   // Fetch prediction data from backend
   const fetchPredictions = async (city) => {
     try {
       setLoading(true);
-      const response = await apiClient.post('/prediction/predict/', { city: city }); // Uses interceptor for token
+      console.log('Fetching predictions for city:', city);
+      const response = await apiClient.post('/prediction/predict/', { city: city });
+      console.log('Prediction response:', response.data);
       setPredictionData(response.data);
       setPredictionError(null);
     } catch (error) {
-      console.error('Error fetching predictions:', error);
-      // The interceptor handles 401 and refreshes the token if needed
+      console.error('Error fetching predictions:', error.response?.data || error.message);
       setPredictionError(
         error.response?.data?.message || 'Failed to load prediction data.'
       );
@@ -52,27 +56,81 @@ const Dashboard = () => {
     }
   };
 
-  // Initial fetch on component mount with fixed city
+  // Fetch solar power data from Django
+  const fetchSolarPower = async () => {
+    try {
+      console.log('Fetching solar power data...');
+      const response = await apiClient.get('/solar/fetch-power/');
+      console.log('Solar power response:', response.data);
+      const data = response.data;
+      const power = data.power_watts;
+      const timestamp = new Date(data.timestamp).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+
+      // Update current power
+      setCurrentPower(power);
+      console.log('Current power updated:', power);
+
+      // Calculate trend
+      setPowerTrend((prevTrend) => {
+        if (prevTrend === '') return 'N/A';
+        const previousPower = powerData.datasets[0].data[powerData.datasets[0].data.length - 1] || 0;
+        const trendValue = previousPower !== 0 ? ((power - previousPower) / previousPower) * 100 : 0;
+        return trendValue >= 0
+          ? `↑ ${trendValue.toFixed(1)}% from previous`
+          : `↓ ${Math.abs(trendValue).toFixed(1)}% from previous`;
+      });
+
+      // Update powerData with new reading (keep last 6 points)
+      setPowerData((prevData) => {
+        const newLabels = [...prevData.labels, timestamp].slice(-6);
+        const newDataPoints = [...prevData.datasets[0].data, power].slice(-6);
+        console.log('Updated powerData:', { labels: newLabels, data: newDataPoints });
+        return {
+          labels: newLabels,
+          datasets: [
+            {
+              data: newDataPoints,
+            },
+          ],
+        };
+      });
+    } catch (error) {
+      console.error('Error fetching solar power:', error.response?.data || error.message);
+    }
+  };
+
+  // Initial fetch for predictions
   useEffect(() => {
+    console.log('Running useEffect for predictions...');
     fetchPredictions(selectedCity);
   }, [selectedCity]);
+
+  // Fetch solar power data every second
+  useEffect(() => {
+    console.log('Starting solar power fetch interval...');
+    fetchSolarPower(); // Initial fetch
+    const interval = setInterval(() => {
+      console.log('Interval tick - fetching solar power...');
+      fetchSolarPower();
+    }, 10000);
+    return () => {
+      console.log('Clearing solar power fetch interval...');
+      clearInterval(interval);
+    };
+  }, []);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     setTimeout(() => {
-      setPowerData({
-        ...powerData,
-        datasets: [
-          {
-            data: powerData.datasets[0].data.map(
-              (val) => val + Math.random() * 10 - 5
-            ),
-          },
-        ],
-      });
+      fetchPredictions(selectedCity);
+      fetchSolarPower();
       setRefreshing(false);
     }, 1000);
-  }, [powerData]);
+  }, [selectedCity]);
 
   return (
     <AuthCheck>
@@ -95,37 +153,36 @@ const Dashboard = () => {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Current Power Generation</Text>
             <View style={styles.powerInfo}>
-              <Text style={styles.powerValue}>4.5 kW</Text>
-              <Text style={styles.powerTrend}>↑ 12% from yesterday</Text>
+              <Text style={styles.powerValue}>{(currentPower / 1000).toFixed(1)} kW</Text>
+              <Text style={styles.powerTrend}>{powerTrend}</Text>
             </View>
           </View>
 
           {/* Today's Generation Chart */}
           <View style={styles.chartContainer}>
-            <Text style={styles.cardTitle}>Today's Generation</Text>
-            <LineChart
-              data={powerData}
-              width={screenWidth - 40}
-              height={250}
-              chartConfig={{
-                backgroundColor: '#fff',
-                backgroundGradientFrom: '#fff',
-                backgroundGradientTo: '#fff',
-                decimalPlaces: 1,
-                color: (opacity = 1) => `rgba(46, 125, 50, ${opacity})`,
-                style: {
-                  borderRadius: 16,
-                },
-              }}
-              bezier
-              style={styles.chart}
-            />
+            <Text style={styles.cardTitle}>Recent Power Generation</Text>
+            {powerData.labels.length > 0 ? (
+              <LineChart
+                data={powerData}
+                width={screenWidth - 40}
+                height={250}
+                chartConfig={{
+                  backgroundColor: '#fff',
+                  backgroundGradientFrom: '#fff',
+                  backgroundGradientTo: '#fff',
+                  decimalPlaces: 1,
+                  color: (opacity = 1) => `rgba(46, 125, 50, ${opacity})`,
+                  style: {
+                    borderRadius: 16,
+                  },
+                }}
+                bezier
+                style={styles.chart}
+              />
+            ) : (
+              <Text style={styles.loadingText}>Loading power data...</Text>
+            )}
           </View>
-
-          {/* City Display (Fixed to Lahore) */}
-          {/* <View style={styles.cityDisplay}>
-            <Text style={styles.cityText}>City: Lahore</Text>
-          </View> */}
 
           {/* 5-Day Power Prediction Section */}
           <View style={styles.card}>
@@ -238,22 +295,6 @@ const styles = StyleSheet.create({
     marginVertical: 16,
     borderRadius: 16,
     flexShrink: 1,
-  },
-  cityDisplay: {
-    marginBottom: 16,
-    padding: 10,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  cityText: {
-    fontSize: 16,
-    color: '#333',
-    fontWeight: '500',
   },
   predictionInfo: {
     marginTop: 8,

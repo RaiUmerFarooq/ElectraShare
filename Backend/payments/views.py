@@ -154,3 +154,39 @@ def stripe_webhook(request):
         print(f"Payment succeeded for intent: {payment_intent['id']}")
 
     return Response({'status': 'success'}, status=200)
+
+# New API to list all producer posts with payment status
+class ListAllProducerPostsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            # Fetch all posts where the user is a producer
+            producer_posts = Post.objects.filter(user__userRole="producer").order_by('-created_at')
+
+            # Get a set of paid post IDs from StripePayment
+            paid_post_ids = set(StripePayment.objects.filter(status="succeeded").values_list('post_id', flat=True))
+
+            # Serialize the posts with payment status
+            posts_data = [
+                {
+                    "id": post.id,
+                    "title": post.title,
+                    "price": float(post.price),
+                    "kilowatts": float(post.kilowatts),
+                    "start_time": post.start_time.strftime("%H:%M:%S"),
+                    "end_time": post.end_time.strftime("%H:%M:%S"),
+                    "created_at": post.created_at.isoformat(),
+                    "producer": post.user.username,
+                    "paid": post.id in paid_post_ids,
+                }
+                for post in producer_posts
+            ]
+
+            return Response(posts_data, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error retrieving producer posts: {str(e)}")
+            return Response(
+                {"message": "Failed to retrieve producer posts."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

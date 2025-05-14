@@ -1,3 +1,4 @@
+// useProducerApi.ts
 import { useState, useEffect } from 'react';
 import apiClient from '@/app/api-component/apiClient';
 
@@ -13,8 +14,10 @@ type RequestStatus = 'idle' | 'loading' | 'pending' | 'accepted' | 'rejected';
 export const useProducerApi = () => {
   const [foundProducer, setFoundProducer] = useState<Producer | null>(null);
   const [acceptedProducers, setAcceptedProducers] = useState<Producer[]>([]);
+  const [sharedProducers, setSharedProducers] = useState<Producer[]>([]); // New state for shared producers
   const [loading, setLoading] = useState(false);
   const [acceptedLoading, setAcceptedLoading] = useState(false);
+  const [sharedLoading, setSharedLoading] = useState(false); // New loading state for shared data
   const [error, setError] = useState<string>('');
   const [requestStatus, setRequestStatus] = useState<RequestStatus>('idle');
 
@@ -38,6 +41,27 @@ export const useProducerApi = () => {
     }
   };
 
+  const fetchSharedProducers = async () => {
+    setSharedLoading(true);
+    setError('');
+    try {
+      const response = await apiClient.get('/consumer/shared-connections/');
+      console.log("Response : ",response)
+      const producers = response.data.map((producer: any) => ({
+        id: producer.id.toString(),
+        username: producer.producer_username,
+        description: `Sharing active with ${producer.producer_username}`, // Customize description
+        status: 'sharing',
+      }));
+      setSharedProducers(producers);
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Failed to fetch shared producers.';
+      setError(errorMessage);
+    } finally {
+      setSharedLoading(false);
+    }
+  };
+
   const searchProducer = async (username: string) => {
     setLoading(true);
     setFoundProducer(null);
@@ -51,6 +75,7 @@ export const useProducerApi = () => {
         description: response.data.description || 'No description provided.',
         status: response.data.status || 'not connected',
       };
+      console.log("Producer : ",producer)
       setFoundProducer(producer);
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Producer not found.';
@@ -78,13 +103,16 @@ export const useProducerApi = () => {
 
   useEffect(() => {
     fetchAcceptedProducers();
+    fetchSharedProducers(); // Fetch shared producers on mount
   }, []);
 
   return {
     foundProducer,
     acceptedProducers,
+    sharedProducers, // Add shared producers to the return value
     loading,
     acceptedLoading,
+    sharedLoading, // Add shared loading state
     error,
     requestStatus,
     searchProducer,

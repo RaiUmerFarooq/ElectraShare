@@ -58,7 +58,7 @@ class ProfileEditSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'contactNo', 'email', 'image']  # Added 'email' to fields
+        fields = ['username', 'contactNo', 'email', 'image', 'userRole']  # Added userRole to fields
 
     def update(self, instance, validated_data):
         # Update the instance with the validated data
@@ -79,4 +79,10 @@ class ProfileEditSerializer(serializers.ModelSerializer):
             ret['image'] = base64.b64encode(instance.image).decode('utf-8')
         else:
             ret['image'] = None
+        
+        # Include userRole only if this is a GET request (viewing profile)
+        request = self.context.get('request')
+        if request and request.method == 'GET':
+            ret['userRole'] = instance.userRole  # Add userRole to response
+        
         return ret

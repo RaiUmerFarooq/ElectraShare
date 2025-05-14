@@ -9,6 +9,7 @@ import {
   Alert,
   ListRenderItem,
   ImageBackground,
+  Switch,
 } from 'react-native';
 import { FontAwesome6, Ionicons } from '@expo/vector-icons';
 import { AntDesign } from '@expo/vector-icons';
@@ -26,6 +27,8 @@ type Request = {
 type Neighbour = {
   id: string;
   name: string;
+  is_sharing: boolean; // Add sharing status
+  // Removed consumer_id as it's no longer needed
 };
 
 const AddNeighbour: React.FC = () => {
@@ -38,7 +41,7 @@ const AddNeighbour: React.FC = () => {
     try {
       const response = await apiClient.get('/friend-requests/');
       const requests = response.data;
-
+console.log("requests data : ",requests)
       // Categorize requests based on status
       const pending = requests.filter(
         (req: Request) => req.status === 'pending'
@@ -58,11 +61,66 @@ const AddNeighbour: React.FC = () => {
       const acceptedNeighboursList = accepted.map((req) => ({
         id: req.id,
         name: req.from_user, // The name of the user who made the request
+        is_sharing: false, // Will be updated by getProducerConnections
       }));
       setAcceptedNeighbours(acceptedNeighboursList);
+
+      // Fetch sharing status after setting accepted neighbors
+      await getProducerConnections();
     } catch (error) {
       console.error('Error fetching requests:', error);
       Alert.alert('Error', 'Failed to fetch friend requests');
+    }
+  };
+
+  const getProducerConnections = async () => {
+    try {
+      const response = await apiClient.get('/producer/connections/');
+      const connections = response.data;
+      console.log("connection data : ",connections) 
+
+      // Update acceptedNeighbours with sharing status
+      setAcceptedNeighbours((prev) =>
+        prev.map((neighbour) => {
+          const connection = connections.find(
+            (conn: any) => conn.consumer_username === neighbour.name
+          );
+          return {
+            ...neighbour,
+            is_sharing: connection ? connection.is_sharing : false,
+          };
+        })
+      );
+    } catch (error) {
+      console.error('Error fetching producer connections:', error);
+      Alert.alert('Error', 'Failed to fetch producer connections');
+    }
+  };
+
+  const toggleSharingStatus = async (consumerUsername: string, isSharing: boolean) => {
+    try {
+      const response = await apiClient.post('/producer/update-sharing/', {
+        consumer_username: consumerUsername, // Changed to consumer_username
+        is_sharing: !isSharing, // Toggle the current status
+      });
+
+      if (response.status === 200) {
+        // Update the local state
+        setAcceptedNeighbours((prev) =>
+          prev.map((neighbour) =>
+            neighbour.name === consumerUsername
+              ? { ...neighbour, is_sharing: !isSharing }
+              : neighbour
+          )
+        );
+        Alert.alert(
+          'Sharing Updated',
+          `Sharing status updated to ${!isSharing ? 'enabled' : 'disabled'}.`
+        );
+      }
+    } catch (error) {
+      console.error('Error updating sharing status:', error);
+      Alert.alert('Error', 'Failed to update sharing status');
     }
   };
 
@@ -81,7 +139,7 @@ const AddNeighbour: React.FC = () => {
         if (action === 'accepted') {
           setAcceptedNeighbours((prev) => [
             ...prev,
-            { id, name: fromUser },
+            { id, name: fromUser, is_sharing: false },
           ]);
         }
         setPendingRequests((prev) =>
@@ -100,6 +158,11 @@ const AddNeighbour: React.FC = () => {
           `You have ${action} the connection request from ${fromUser}.`,
           [{ text: 'OK' }]
         );
+
+        // Refresh producer connections after accepting a new request
+        if (action === 'accepted') {
+          await getProducerConnections();
+        }
       }
     } catch (error) {
       console.error('Error managing request:', error);
@@ -126,11 +189,11 @@ const AddNeighbour: React.FC = () => {
   useEffect(() => {
     getFriendRequests();
     const intervalId = setInterval(() => {
-        getFriendRequests();
-      }, 5000); // 5000 ms = 5 seconds
-    
-      // Clean up the interval on component unmount
-      return () => clearInterval(intervalId);
+      getFriendRequests();
+    }, 5000); // 5000 ms = 5 seconds
+
+    // Clean up the interval on component unmount
+    return () => clearInterval(intervalId);
   }, []);
 
   const renderRequestItem: ListRenderItem<Request> = ({ item }) => (
@@ -158,12 +221,21 @@ const AddNeighbour: React.FC = () => {
   const renderNeighbourItem: ListRenderItem<Neighbour> = ({ item }) => (
     <View style={[styles.requestContainer, styles.acceptedContainer]}>
       <Text style={styles.requestText}>{item.name}</Text>
-      <TouchableOpacity
-        style={styles.rejectButton}
-        onPress={() => removeNeighbour(item.id)}
-      >
-        <AntDesign name="delete" size={24} color="#FFFFFF" />
-      </TouchableOpacity>
+      <View style={styles.buttonContainer}>
+        <Switch
+          value={item.is_sharing}
+          onValueChange={() => toggleSharingStatus(item.name, item.is_sharing)} // Changed to item.name
+          trackColor={{ false: '#767577', true: '#81b0ff' }}
+          thumbColor={item.is_sharing ? '#4CAF50' : '#f4f3f4'}
+          style={styles.switch}
+        />
+        <TouchableOpacity
+          style={styles.rejectButton}
+          onPress={() => removeNeighbour(item.id)}
+        >
+          <AntDesign name="delete" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -317,6 +389,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#888',
     marginTop: 20,
+  },
+  switch: {
+    marginRight: 10,
   },
 });
 

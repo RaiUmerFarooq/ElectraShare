@@ -1,4 +1,3 @@
-// ProducerCard.tsx
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
@@ -11,13 +10,15 @@ type Producer = {
 
 interface ProducerCardProps {
   producer: Producer;
+  children?: React.ReactNode; // Add children prop
 }
 
-export const ProducerCard: React.FC<ProducerCardProps> = ({ producer }) => (
+export const ProducerCard: React.FC<ProducerCardProps> = ({ producer, children }) => (
   <View style={styles.card}>
     <Text style={styles.producerUsername}>{producer.username}</Text>
     <Text style={styles.producerDescription}>{producer.description}</Text>
     <Text style={styles.connectionStatus}>Connection Status: {producer.status}</Text>
+    {children} {/* Render children (e.g., FriendRequestButton) */}
   </View>
 );
 

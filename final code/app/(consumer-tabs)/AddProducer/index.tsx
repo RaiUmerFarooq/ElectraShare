@@ -17,6 +17,7 @@ import { faSearchengin } from '@fortawesome/free-brands-svg-icons';
 import { useProducerApi } from './useProducerApi';
 import { ProducerCard } from './ProducerCard';
 import { FriendRequestButton } from './FriendRequestButton';
+import { SharedProducerCard } from './SharedProducerCard'; // Import the new component
 
 const AddProducer = () => {
   const [username, setUsername] = useState('');
@@ -24,8 +25,10 @@ const AddProducer = () => {
   const {
     foundProducer,
     acceptedProducers,
+    sharedProducers,
     loading,
     acceptedLoading,
+    sharedLoading,
     error,
     requestStatus,
     searchProducer,
@@ -42,7 +45,7 @@ const AddProducer = () => {
       toValue: 1,
       duration: 500,
       easing: Easing.ease,
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start();
   };
 
@@ -99,6 +102,19 @@ const AddProducer = () => {
           ))
         ) : (
           <Text style={styles.noDataText}>No accepted producers found.</Text>
+        )}
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Shared Producers</Text>
+        </View>
+        {sharedLoading ? (
+          <ActivityIndicator size="large" color="#4CAF50" style={styles.loading} />
+        ) : sharedProducers.length > 0 ? (
+          sharedProducers.map((producer) => (
+            <SharedProducerCard key={producer.id} producer={producer} />
+          ))
+        ) : (
+          <Text style={styles.noDataText}>No shared producers found.</Text>
         )}
       </ScrollView>
     </ImageBackground>

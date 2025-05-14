@@ -36,7 +36,7 @@ const SignIn = () => {
       const response = await axios.post('http://localhost:8000/api/login/', { username, password }, {
         headers: { 'Content-Type': 'application/json' },
       });
-
+console.log(response.data);
       if (response.status === 200 && response.data.access) {
         // Store tokens and session expiry
         const { access: accessToken, refresh: refreshToken, status } = response.data;

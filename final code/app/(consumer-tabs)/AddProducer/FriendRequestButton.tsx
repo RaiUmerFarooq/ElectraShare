@@ -1,4 +1,3 @@
-// FriendRequestButton.tsx
 import React from 'react';
 import { TouchableOpacity, View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 
@@ -13,16 +12,12 @@ export const FriendRequestButton: React.FC<FriendRequestButtonProps> = ({
   requestStatus,
   onPress,
 }) => {
-  if (status === 'pending' || requestStatus === 'pending') {
-    return (
-      <View style={[styles.button, styles.pending]}>
-        <Text style={styles.buttonText}>Pending...</Text>
-      </View>
-    );
+  // Hide button if status is not 'not connected' (i.e., already connected or pending)
+  if (status !== 'not connected') {
+    return null;
   }
 
-  if (status !== 'not connected') return null;
-
+  // Render based on requestStatus when status is 'not connected'
   switch (requestStatus) {
     case 'loading':
       return (
@@ -42,6 +37,13 @@ export const FriendRequestButton: React.FC<FriendRequestButtonProps> = ({
           <Text style={styles.buttonText}>Request Rejected ✗</Text>
         </View>
       );
+    case 'pending':
+      return (
+        <View style={[styles.button, styles.pending]}>
+          <Text style={styles.buttonText}>Pending...</Text>
+        </View>
+      );
+    case 'idle':
     default:
       return (
         <TouchableOpacity style={styles.button} onPress={onPress}>

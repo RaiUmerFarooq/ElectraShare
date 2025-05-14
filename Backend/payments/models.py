@@ -1,4 +1,3 @@
-# payments/models.py
 from django.db import models
 from django.contrib.auth import get_user_model
 from core.models import Post  # Import Post from the core app
@@ -19,6 +18,7 @@ class StripePayment(models.Model):
     status = models.CharField(max_length=50, default='pending')  # Increase max_length
     date = models.DateField(auto_now_add=True)  # Date of payment
     time = models.TimeField(auto_now_add=True)  # Time of payment
+    sharing = models.BooleanField(default=False)  # New field to indicate if payment is for sharing
 
     def __str__(self):
         return f"Payment {self.stripe_payment_intent_id} for Post {self.post.title} by {self.user.username}"

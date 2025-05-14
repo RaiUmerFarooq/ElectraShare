@@ -27,19 +27,53 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="ProProfile/index"  // Should match the SettingsScreen filename
+        name="ProducerPost/index"  // New screen for producer posts
         options={{
-          title: 'Profile',
-          headerShown:false,
-          tabBarIcon: ({ color }) => <FontAwesome5 size={28} name="user-circle" color={color} />,
+          title: 'My Posts',
+          tabBarIcon: ({ color }) => <MaterialIcons size={28} name="list-alt" color={color} />,
         }}
       />
       <Tabs.Screen
-      name="EditProfile/index"
-      options={{tile: "Edit Profile",
-      headerShown:false,
-      tabBarButton: () => null,
-      }}
+        name="ProProfile/index"  // Should match the SettingsScreen filename
+        options={{
+          title: 'Profile',
+          headerShown: false,
+          tabBarIcon: ({ color }) => <FontAwesome5 size={28} name="user-circle" color={color} />,
+        }}
+      />
+       
+      <Tabs.Screen
+        name="EditProfile/index"
+        options={{
+          title: "Edit Profile",  // Corrected 'tile' to 'title'
+          headerShown: false,
+          tabBarButton: () => null,  // Hides the tab button
+        }}
+      />
+     
+       <Tabs.Screen
+        name="ProducerPost/styles"
+        options={{
+          title: "Edit Profile",  // Corrected 'tile' to 'title'
+          headerShown: false,
+          tabBarButton: () => null,  // Hides the tab button
+        }}
+      />
+      <Tabs.Screen
+        name="ProducerPost/components/Loading"
+        options={{
+          title: "Edit Profile",  // Corrected 'tile' to 'title'
+          headerShown: false,
+          tabBarButton: () => null,  // Hides the tab button
+        }}
+      />
+      <Tabs.Screen
+        name="ProducerPost/components/PostItem"
+        options={{
+          title: "Edit Profile",  // Corrected 'tile' to 'title'
+          headerShown: false,
+          tabBarButton: () => null,  // Hides the tab button
+        }}
       />
     </Tabs>
   );
